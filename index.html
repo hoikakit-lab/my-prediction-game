@@ -134,8 +134,8 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">結算截止時間</label>
-                                <input type="datetime-local" id="marketDeadline"
+                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (年份限制最多四位數)</label>
+                                <input type="datetime-local" id="marketDeadline" maxlength="16"
                                     class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
                             </div>
                         </div>
@@ -1069,6 +1069,13 @@
             if (!title) { alert('請輸入預測題目！'); return; }
             if (!deadline) { alert('請設定預測的截止時間！'); return; }
 
+            // 嚴格檢查年份位數，最多為千位（不超過 4 位數，防範像 202622 的錯誤）
+            let yearPart = deadline.split('-')[0];
+            if (!yearPart || yearPart.length > 4 || parseInt(yearPart) > 9999) {
+                alert('截止時間的年份格式錯誤！年份數位最多為千位（例如 2026），不可輸入過多位數。');
+                return;
+            }
+
             let options = optionsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
             if (options.length < 2) { alert('至少需要設定 2 個選項！'); return; }
 
@@ -1103,6 +1110,9 @@
                 
                 let currentCount = parseInt(localStorage.getItem('prediction_post_count') || '0');
                 localStorage.setItem('prediction_post_count', (currentCount + 1).toString());
+
+                // 立即動態更新畫面上剩餘額度，不需按重新整理
+                updateQuotaUI();
 
                 showToast('成功發起預測題目！', 'success');
                 document.getElementById('newMarketTitle').value = '';
