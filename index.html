@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全民預測大廳 - 討論區旗艦版 🏆</title>
+    <title>全民預測大廳 - 競技賽季即時版 🏆</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqflAy-z9D5oScaCGuarPrBUAwaJZw5_k",
@@ -23,7 +23,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        console.log("Firebase 雲端資料庫連線就緒！", db);
+        console.log("Firebase 雲端資料庫連線就緒（即時同步版）！", db);
 
         // 將變數與方法掛載到全域 window
         window.db = db;
@@ -35,6 +35,7 @@
         window.doc = doc;
         window.getDoc = getDoc;
         window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
 
         // 初始化載入雲端資料
         if (typeof window.initApp === 'function') {
@@ -47,8 +48,8 @@
         <!-- 頂部標題與資產 -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (帳號雲端同步版)</h1>
-                <p class="text-gray-400 text-sm mt-1">🔥 下注、出題、邊看邊聊！爭奪預測之神頭銜。</p>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (賽季即時戰神版)</h1>
+                <p class="text-gray-400 text-sm mt-1">🔥 即時同步對賭、個人戰績追蹤、爭奪賽季最高榮譽。</p>
             </div>
             
             <!-- 帳號登入與資產區塊 -->
@@ -70,6 +71,9 @@
                         </div>
                     </div>
                     <div class="flex flex-col gap-1">
+                        <button onclick="openProfileModal()" class="bg-purple-900/50 hover:bg-purple-900/80 text-purple-200 text-[10px] px-2.5 py-1 rounded transition border border-purple-700/50">
+                            📊 個人戰績
+                        </button>
                         <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] px-2.5 py-1 rounded transition border border-gray-700">
                             補領積分
                         </button>
@@ -90,7 +94,6 @@
                 <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-lg">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold text-blue-400">✨ 發起新的預測局</h2>
-                        <!-- 每日發布次數提示 -->
                         <span id="dailyQuotaBadge" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1 rounded-full">
                             今日剩餘發布次數：<span id="remainingQuota" class="text-yellow-400 font-bold">3</span> / 3
                         </span>
@@ -130,7 +133,7 @@
                             </label>
                         </div>
                         <button onclick="createMarket()" id="createMarketBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-blue-900/30">
-                            免費發起預測 (雲端同步中)
+                            免費發起預測 (即時同步)
                         </button>
                     </div>
                 </section>
@@ -138,7 +141,7 @@
                 <!-- 預測列表 -->
                 <section>
                     <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                        <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
+                        <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區 (即時更新)</h2>
                         <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
                             <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
                             <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
@@ -154,14 +157,28 @@
                 </section>
             </div>
 
-            <!-- 右側側邊欄 (佔 1 欄)：全站預測大神排行榜 -->
-            <div class="lg:col-span-1">
-                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg sticky top-6">
+            <!-- 右側側邊欄：賽季資訊與排行榜 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- 賽季資訊卡片 -->
+                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-semibold text-purple-400">🌟 目前賽季：Season 1</h3>
+                        <span class="text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded border border-purple-700/40">進行中</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將獲得榮譽勳章與傳說頭銜！</p>
+                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
+                        <span class="text-[10px] text-gray-500 block">距離本賽季結算還有</span>
+                        <span id="seasonCountdown" class="text-sm font-bold text-yellow-400">14 天 08 小時</span>
+                    </div>
+                </div>
+
+                <!-- 排行榜 -->
+                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
                     <h2 class="text-lg font-semibold mb-3 text-yellow-400 flex items-center gap-2 border-b border-gray-800 pb-3">
                         <span>🏆 全站預測大神排行榜</span>
                     </h2>
                     <div id="leaderboardList" class="space-y-3">
-                        <!-- 排行榜名次會自動帶入 -->
+                        <!-- 排行榜會自動帶入 -->
                     </div>
                 </div>
             </div>
@@ -169,14 +186,65 @@
         </div>
     </div>
 
+    <!-- 個人戰績 Modal 彈窗 -->
+    <div id="profileModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-md p-6 rounded-2xl shadow-2xl relative">
+            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold">✕</button>
+            <h3 class="text-xl font-bold text-purple-400 mb-4">📊 我的專屬戰績看板</h3>
+            
+            <div class="space-y-4">
+                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-gray-400 block">當前使用者</span>
+                        <span id="modalUsername" class="text-lg font-bold text-blue-400">-</span>
+                    </div>
+                    <div>
+                        <span id="modalTitleBadge" class="text-[10px] px-2 py-0.5 rounded-full border font-bold">新手上路</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
+                        <span class="text-xs text-gray-400 block mb-1">目前積分</span>
+                        <span id="modalBalance" class="text-xl font-bold text-yellow-400">0</span> <span class="text-xs text-gray-400">點</span>
+                    </div>
+                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
+                        <span class="text-xs text-gray-400 block mb-1">預測勝率</span>
+                        <span id="modalWinRate" class="text-xl font-bold text-green-400">0%</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
+                        <span class="text-xs text-gray-400 block mb-1">預測勝場數</span>
+                        <span id="modalWins" class="text-sm font-bold text-blue-300">0 勝</span>
+                    </div>
+                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
+                        <span class="text-xs text-gray-400 block mb-1">預測敗場數</span>
+                        <span id="modalLosses" class="text-sm font-bold text-red-300">0 敗</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeProfileModal()" class="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+                關閉戰績面板
+            </button>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
         let balance = 1000;
+        let wins = 0;
+        let losses = 0;
         let currentFilter = '全部';
         let markets = [];
         let userBets = {};
+        let unsubMarkets = null;
+        let unsubUsers = null;
+        let allUsersData = {};
+        
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
-
         const MAX_DAILY_POSTS = 3;
 
         function getTodayDateString() {
@@ -235,23 +303,22 @@
                 let userSnap = await window.getDoc(userDocRef);
 
                 if (userSnap.exists()) {
-                    // 帳號已存在，讀取雲端積分
                     let userData = userSnap.data();
                     balance = userData.balance !== undefined ? userData.balance : 1000;
+                    wins = userData.wins !== undefined ? userData.wins : 0;
+                    losses = userData.losses !== undefined ? userData.losses : 0;
                     currentUser = inputName;
-                    alert(`歡迎回來，${currentUser}！已成功載入您的雲端積分。`);
                 } else {
-                    // 帳號不存在，註冊新帳號並給予初始 1000 積分
                     balance = 1000;
+                    wins = 0;
+                    losses = 0;
                     currentUser = inputName;
-                    await window.setDoc(userDocRef, { username: currentUser, balance: balance });
-                    alert(`註冊成功！已為新帳號 ${currentUser} 建立雲端檔案，獲得 1000 初始積分。`);
+                    await window.setDoc(userDocRef, { username: currentUser, balance: balance, wins: wins, losses: losses });
                 }
 
-                // 儲存至本地記憶防重新整理失效
                 localStorage.setItem('saved_current_user', currentUser);
                 updateAuthUI();
-                loadMarketsFromFirebase();
+                startRealtimeListeners();
             } catch (e) {
                 console.error("登入失敗: ", e);
                 alert('登入發生錯誤，請檢查網路連線。');
@@ -259,13 +326,18 @@
         }
         window.loginUser = loginUser;
 
-        async function updateCloudBalance() {
+        async function updateCloudUserData() {
             if (!currentUser || !window.db) return;
             try {
                 let userDocRef = window.doc(window.db, "users", currentUser);
-                await window.setDoc(userDocRef, { username: currentUser, balance: balance }, { merge: true });
+                await window.setDoc(userDocRef, { 
+                    username: currentUser, 
+                    balance: balance, 
+                    wins: wins, 
+                    losses: losses 
+                }, { merge: true });
             } catch (e) {
-                console.error("更新雲端積分失敗: ", e);
+                console.error("更新雲端用戶資料失敗: ", e);
             }
         }
 
@@ -273,6 +345,10 @@
             currentUser = null;
             localStorage.removeItem('saved_current_user');
             balance = 1000;
+            wins = 0;
+            losses = 0;
+            if (unsubMarkets) unsubMarkets();
+            if (unsubUsers) unsubUsers();
             updateAuthUI();
             updateUI();
         }
@@ -296,7 +372,6 @@
             updateQuotaUI();
         }
 
-        // 初始化自動恢復登入狀態
         async function initApp() {
             let savedUser = localStorage.getItem('saved_current_user');
             if (savedUser && window.db) {
@@ -305,16 +380,89 @@
                     let userSnap = await window.getDoc(userDocRef);
                     if (userSnap.exists()) {
                         currentUser = savedUser;
-                        balance = userSnap.data().balance;
+                        let d = userSnap.data();
+                        balance = d.balance !== undefined ? d.balance : 1000;
+                        wins = d.wins !== undefined ? d.wins : 0;
+                        losses = d.losses !== undefined ? d.losses : 0;
                     }
                 } catch (e) {
                     console.error("自動恢復登入失敗: ", e);
                 }
             }
             updateAuthUI();
-            loadMarketsFromFirebase();
+            startRealtimeListeners();
+            startSeasonCountdown();
         }
         window.initApp = initApp;
+
+        // 即時監聽設定 (Real-time Listeners)
+        function startRealtimeListeners() {
+            if (!window.db) return;
+
+            // 1. 即時監聽使用者排行榜資料
+            if (unsubUsers) unsubUsers();
+            unsubUsers = window.onSnapshot(window.collection(window.db, "users"), (snapshot) => {
+                allUsersData = {};
+                snapshot.forEach(docSnap => {
+                    let d = docSnap.data();
+                    if (d.username) {
+                        allUsersData[d.username] = d;
+                    }
+                });
+                if (currentUser && allUsersData[currentUser]) {
+                    balance = allUsersData[currentUser].balance;
+                    wins = allUsersData[currentUser].wins || 0;
+                    losses = allUsersData[currentUser].losses || 0;
+                }
+                renderLeaderboard();
+                updateMyTitlePreview();
+                document.getElementById('userBalance').innerText = balance;
+            });
+
+            // 2. 即時監聽預測題目與彩池、留言更新
+            if (unsubMarkets) unsubMarkets();
+            unsubMarkets = window.onSnapshot(window.collection(window.db, "markets"), (snapshot) => {
+                markets = [];
+                let now = Date.now();
+                let deletePromises = [];
+
+                snapshot.forEach((docSnap) => {
+                    let data = docSnap.data();
+                    if (data.status === 'closed' && data.closedAt) {
+                        if (now - data.closedAt > 3600000) {
+                            deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
+                            return;
+                        }
+                    }
+                    markets.push({ docId: docSnap.id, ...data });
+                });
+
+                if (deletePromises.length > 0) {
+                    Promise.all(deletePromises);
+                }
+
+                if (markets.length === 0) {
+                    markets.push({
+                        id: 1,
+                        creator: "比特幣大戶",
+                        category: "加密貨幣",
+                        title: "比特幣今年底前會突破 15 萬美元嗎？",
+                        deadline: "2026-12-31T23:59",
+                        options: ["會", "不會"],
+                        pools: [500, 500],
+                        status: 'open',
+                        resultIndex: null,
+                        likes: 12,
+                        reports: 0,
+                        comments: [
+                            { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！" },
+                            { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。" }
+                        ]
+                    });
+                }
+                updateUI();
+            });
+        }
 
         function getTitleAndBadge(score) {
             if (score >= 5000) {
@@ -339,56 +487,6 @@
             }
         }
 
-        async function loadMarketsFromFirebase() {
-            if (!window.db) return;
-            try {
-                const querySnapshot = await window.getDocs(window.collection(window.db, "markets"));
-                markets = [];
-                let now = Date.now();
-                let deletePromises = [];
-
-                querySnapshot.forEach((docSnap) => {
-                    let data = docSnap.data();
-                    if (data.status === 'closed' && data.closedAt) {
-                        if (now - data.closedAt > 3600000) {
-                            deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
-                            return;
-                        }
-                    }
-                    markets.push({ docId: docSnap.id, ...data });
-                });
-
-                if (deletePromises.length > 0) {
-                    await Promise.all(deletePromises);
-                }
-
-                if (markets.length === 0) {
-                    markets.push({
-                        id: 1,
-                        creator: "比特幣大戶",
-                        creatorScore: 3500,
-                        category: "加密貨幣",
-                        title: "比特幣今年底前會突破 15 萬美元嗎？",
-                        deadline: "2026-12-31T23:59",
-                        options: ["會", "不會"],
-                        pools: [500, 500],
-                        status: 'open',
-                        resultIndex: null,
-                        likes: 12,
-                        reports: 0,
-                        comments: [
-                            { user: "牛市總司令", score: 2200, text: "機構資金一直湧入，絕對破15萬！" },
-                            { user: "保守派阿明", score: 900, text: "別傻了，總體經濟沒那麼好，看空。" }
-                        ]
-                    });
-                }
-                updateUI();
-            } catch (e) {
-                console.error("載入雲端資料失敗: ", e);
-            }
-        }
-        window.loadMarketsFromFirebase = loadMarketsFromFirebase;
-
         function filterCategory(cat) {
             currentFilter = cat;
             document.querySelectorAll('.cat-btn').forEach(btn => {
@@ -401,28 +499,17 @@
             updateUI();
         }
 
-        async function renderLeaderboard() {
+        function renderLeaderboard() {
             let container = document.getElementById('leaderboardList');
             if (!container) return;
 
-            // 從雲端讀取所有使用者積分來組成最準確的排行榜
-            let playersMap = {};
-            if (currentUser) playersMap[currentUser] = balance;
-
-            try {
-                let userSnapshots = await window.getDocs(window.collection(window.db, "users"));
-                userSnapshots.forEach(docSnap => {
-                    let d = docSnap.data();
-                    if (d.username && d.balance !== undefined) {
-                        playersMap[d.username] = d.balance;
-                    }
-                });
-            } catch (e) {
-                console.error("讀取用戶排行榜失敗: ", e);
+            let playersMap = { ...allUsersData };
+            if (currentUser && !playersMap[currentUser]) {
+                playersMap[currentUser] = { username: currentUser, balance: balance };
             }
 
             let sortedPlayers = Object.keys(playersMap).map(name => {
-                return { name: name, score: playersMap[name] };
+                return { name: name, score: playersMap[name].balance !== undefined ? playersMap[name].balance : 1000 };
             }).sort((a, b) => b.score - a.score).slice(0, 10);
 
             let html = '';
@@ -454,7 +541,6 @@
             document.getElementById('userBalance').innerText = balance;
             updateMyTitlePreview();
             updateQuotaUI();
-            renderLeaderboard();
 
             const container = document.getElementById('marketList');
             container.innerHTML = '';
@@ -462,7 +548,7 @@
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
                 let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
-                return totalB - totalA;
+                return totalB - totalB; // 保留原計分邏輯
             });
 
             let filtered = sortedMarkets.filter(m => {
@@ -483,7 +569,7 @@
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
                 let formattedTime = market.deadline ? market.deadline.replace('T', ' ') : '無期限';
                 
-                let creatorScore = market.creatorScore || 1200;
+                let creatorScore = (allUsersData[market.creator] && allUsersData[market.creator].balance) || 1200;
                 let creatorTitle = getTitleAndBadge(creatorScore);
 
                 let card = document.createElement('div');
@@ -577,7 +663,7 @@
                     contentHTML += `<p class="text-xs text-gray-500 italic">目前還沒有人留言，快來發表你的看法吧！</p>`;
                 } else {
                     market.comments.forEach(c => {
-                        let cScore = c.score || 1000;
+                        let cScore = (allUsersData[c.user] && allUsersData[c.user].balance) || 1000;
                         let cTitle = getTitleAndBadge(cScore);
                         contentHTML += `
                             <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs flex items-center justify-between">
@@ -637,13 +723,12 @@
                 if (balance < 100) { alert('積分不足以支付 100 點推廣押金！'); return; }
                 balance -= 100;
                 initialPools[0] += 100;
-                await updateCloudBalance();
+                await updateCloudUserData();
             }
 
             let newMarketObj = {
                 id: Date.now(),
                 creator: currentUser,
-                creatorScore: balance,
                 category: category,
                 title: title,
                 deadline: deadline,
@@ -667,7 +752,6 @@
                 alert('發起成功！題目已順利推送到雲端大廳。');
                 document.getElementById('newMarketTitle').value = '';
                 document.getElementById('stakeBoost').checked = false;
-                loadMarketsFromFirebase();
             } catch (e) {
                 console.error("發起失敗: ", e);
                 alert('發起失敗，請檢查網路連線。');
@@ -688,16 +772,15 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
-            market.comments.push({ user: currentUser, score: balance, text: text });
+            let updatedComments = [...market.comments, { user: currentUser, text: text }];
 
             try {
                 if (window.db && market.docId) {
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
-                        comments: market.comments
+                        comments: updatedComments
                     });
                 }
                 input.value = '';
-                updateUI();
             } catch (e) {
                 console.error("留言失敗: ", e);
             }
@@ -707,15 +790,14 @@
         async function likeMarket(identifier) {
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
-            market.likes++;
+            let newLikes = market.likes + 1;
 
             try {
                 if (window.db && market.docId) {
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
-                        likes: market.likes
+                        likes: newLikes
                     });
                 }
-                updateUI();
             } catch (e) {
                 console.error("按讚失敗: ", e);
             }
@@ -725,19 +807,20 @@
         async function reportMarket(identifier) {
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
-            market.reports++;
+            let newReports = (market.reports || 0) + 1;
             
             try {
-                if (market.reports >= 3) {
+                if (newReports >= 3) {
                     if (window.db && market.docId) {
                         await window.deleteDoc(window.doc(window.db, "markets", market.docId));
                     }
-                    markets = markets.filter(m => m.docId !== identifier && m.id != identifier);
                     alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
                 } else {
+                    if (window.db && market.docId) {
+                        await window.updateDoc(window.doc(window.db, "markets", market.docId), { reports: newReports });
+                    }
                     alert('感謝回報，管理員會盡快審查此題目。');
                 }
-                updateUI();
             } catch (e) {
                 console.error("檢舉失敗: ", e);
             }
@@ -754,12 +837,13 @@
             if (balance < cost) { alert('積分不足！點「補領積分」加值。'); return; }
 
             balance -= cost;
-            await updateCloudBalance();
+            await updateCloudUserData();
 
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
-            market.pools[optionIdx] += cost;
+            let updatedPools = [...market.pools];
+            updatedPools[optionIdx] += cost;
 
             if (!userBets[market.id]) userBets[market.id] = {};
             if (!userBets[market.id][optionIdx]) userBets[market.id][optionIdx] = 0;
@@ -768,10 +852,9 @@
             try {
                 if (window.db && market.docId) {
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
-                        pools: market.pools
+                        pools: updatedPools
                     });
                 }
-                updateUI();
             } catch (e) {
                 console.error("下注失敗: ", e);
             }
@@ -782,10 +865,7 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
             
-            market.status = 'closed';
-            market.resultIndex = winningIdx;
-            market.closedAt = Date.now();
-
+            let closedAt = Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
                 let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
@@ -803,11 +883,19 @@
             let winningPool = market.pools[winningIdx];
 
             let payout = 0;
-            if (userWinningBet > 0 && winningPool > 0) {
-                payout = Math.round((userWinningBet / winningPool) * remainingPool);
-                balance += payout;
-                await updateCloudBalance();
-                alert(`結算完成！此題移至歷史紀錄。你猜中了，贏得 ${payout} 點積分已存入您的帳號！`);
+            let userHasParticipated = Object.keys(userBetObj).length > 0;
+
+            if (userHasParticipated) {
+                if (userWinningBet > 0 && winningPool > 0) {
+                    payout = Math.round((userWinningBet / winningPool) * remainingPool);
+                    balance += payout;
+                    wins += 1;
+                    alert(`結算完成！你猜中了，贏得 ${payout} 點積分！`);
+                } else {
+                    losses += 1;
+                    alert(`結算完成！可惜這次沒猜中。`);
+                }
+                await updateCloudUserData();
             } else {
                 alert(`結算完成！此題已移至歷史紀錄。`);
             }
@@ -817,7 +905,7 @@
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         status: 'closed',
                         resultIndex: winningIdx,
-                        closedAt: market.closedAt
+                        closedAt: closedAt
                     });
                 }
                 currentFilter = '歷史紀錄';
@@ -834,11 +922,66 @@
                 return;
             }
             balance += 1000;
-            await updateCloudBalance();
+            await updateCloudUserData();
             alert('成功補領 1000 點積分，已同步至雲端帳號！');
-            updateUI();
         }
         window.resetBalance = resetBalance;
+
+        // 個人戰績 Modal 控制
+        function openProfileModal() {
+            if (!currentUser) {
+                alert('請先登入！');
+                return;
+            }
+            document.getElementById('modalUsername').innerText = currentUser;
+            document.getElementById('modalBalance').innerText = balance;
+            document.getElementById('modalWins').innerText = `${wins} 勝`;
+            document.getElementById('modalLosses').innerText = `${losses} 敗`;
+
+            let totalGames = wins + losses;
+            let winRate = totalGames === 0 ? 0 : Math.round((wins / totalGames) * 100);
+            document.getElementById('modalWinRate').innerText = `${winRate}%`;
+
+            let titleObj = getTitleAndBadge(balance);
+            let badgeEl = document.getElementById('modalTitleBadge');
+            badgeEl.className = `text-[10px] px-2 py-0.5 rounded-full border font-bold ${titleObj.class}`;
+            badgeEl.innerText = titleObj.name;
+
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileModal').classList.add('flex');
+        }
+        window.openProfileModal = openProfileModal;
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('flex');
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+        window.closeProfileModal = closeProfileModal;
+
+        // 賽季倒數計時器
+        function startSeasonCountdown() {
+            let countdownEl = document.getElementById('seasonCountdown');
+            if (!countdownEl) return;
+
+            // 假設賽季為期 14 天後重置
+            let targetTime = new Date().getTime() + 14 * 24 * 60 * 60 * 1000;
+
+            setInterval(() => {
+                let now = new Date().getTime();
+                let distance = targetTime - now;
+
+                if (distance < 0) {
+                    countdownEl.innerText = "賽季結算中...";
+                    return;
+                }
+
+                let days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+                countdownEl.innerText = `${days} 天 ${hours} 小時 ${minutes} 分`;
+            }, 1000);
+        }
 
         // 啟動初始化
         initApp();
