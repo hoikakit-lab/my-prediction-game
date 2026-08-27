@@ -8,7 +8,7 @@
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqflAy-z9D5oScaCGuarPrBUAwaJZw5_k",
@@ -31,6 +31,7 @@
         window.addDoc = addDoc;
         window.getDocs = getDocs;
         window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
         window.doc = doc;
         window.arrayUnion = arrayUnion;
 
@@ -123,7 +124,7 @@
 
         <!-- 預測列表 -->
         <section>
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                 <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
                 <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
                     <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
@@ -131,6 +132,7 @@
                     <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
                     <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
                     <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
+                    <button onclick="filterCategory('歷史紀錄')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn border border-yellow-500/40 text-yellow-400" data-cat="歷史紀錄">📜 歷史紀錄 (已結算)</button>
                 </div>
             </div>
             <div id="marketList" class="space-y-6">
@@ -171,22 +173,42 @@
             }
         }
 
-        // 從 Firebase 載入資料
-        async function loadMarketsFromFirebase() {
+        // 從 Firebase 載入資料並檢查過期已結算題目
+         async function loadMarketsFromFirebase() {
             if (!window.db) return;
             try {
                 const querySnapshot = await window.getDocs(window.collection(window.db, "markets"));
                 markets = [];
+                let now = Date.now();
+                let deletePromises = [];
+
                 querySnapshot.forEach((docSnap) => {
-                    markets.push({ docId: docSnap.id, ...docSnap.data() });
+                    let data = docSnap.data();
+                    
+                    // 檢查是否為已結算且超過 1 小時 (3600000 毫秒)
+                    if (data.status === 'closed' && data.closedAt) {
+                        if (now - data.closedAt > 3600000) {
+                            // 超過 1 小時，從雲端刪除
+                            deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
+                            return; // 不加入前端陣列
+                        }
+                    }
+
+                    markets.push({ docId: docSnap.id, ...data });
                 });
+
+                // 執行雲端刪除過期資料
+                if (deletePromises.length > 0) {
+                    await Promise.all(deletePromises);
+                    console.log(`已自動清除 ${deletePromises.length} 筆超過 1 小時的歷史結算資料。`);
+                }
 
                 // 如果雲端完全沒資料，給一個預設範例
                 if (markets.length === 0) {
                     markets.push({
                         id: 1,
                         creator: "比特幣大戶",
-                        creatorScore: 3500, // 預設範例的身家積分
+                        creatorScore: 3500,
                         category: "加密貨幣",
                         title: "比特幣今年底前會突破 15 萬美元嗎？",
                         deadline: "2026-12-31T23:59",
@@ -226,9 +248,8 @@
             let container = document.getElementById('leaderboardList');
             if (!container) return;
 
-            // 收集全站玩家（包含你自己與題目建立者、留言者）來做簡易積分榜模擬
             let playersMap = {};
-            playersMap["路人甲"] = balance; // 自己
+            playersMap["路人甲"] = balance;
 
             markets.forEach(m => {
                 if (m.creator) {
@@ -241,10 +262,9 @@
                 }
             });
 
-            // 轉成陣列並排序
             let sortedPlayers = Object.keys(playersMap).map(name => {
                 return { name: name, score: playersMap[name] };
-            }).sort((a, b) => b.score - a.score).slice(0, 3); // 取前3名
+            }).sort((a, b) => b.score - a.score).slice(0, 3);
 
             let html = '';
             sortedPlayers.forEach((p, idx) => {
@@ -282,12 +302,14 @@
             });
 
             let filtered = sortedMarkets.filter(m => {
-                if (currentFilter === '全部') return true;
-                return m.category === currentFilter;
+                if (currentFilter === '全部') return m.status === 'open'; // 首頁預設只看進行中
+                if (currentFilter === '歷史紀錄') return m.status === 'closed'; // 歷史紀錄看已結算
+                return m.category === currentFilter && m.status === 'open';
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl text-center text-gray-500">此分類目前沒有預測題目，快來發起一個吧！</div>`;
+                let emptyText = currentFilter === '歷史紀錄' ? '目前沒有已結算的歷史紀錄（保留 1 小時後自動清除）。' : '此分類目前沒有進行中的預測題目，快來發起一個吧！';
+                container.innerHTML = `<div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl text-center text-gray-500">${emptyText}</div>`;
                 return;
             }
 
@@ -297,7 +319,6 @@
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
                 let formattedTime = market.deadline ? market.deadline.replace('T', ' ') : '無期限';
                 
-                // 取得發起人的頭銜
                 let creatorScore = market.creatorScore || 1200;
                 let creatorTitle = getTitleAndBadge(creatorScore);
 
@@ -311,8 +332,8 @@
                             <span class="text-xs bg-blue-900/50 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded">${market.category}</span>
                             <h3 class="text-lg font-bold">${market.title}</h3>
                         </div>
-                        <span class="text-xs px-2.5 py-1 rounded-full ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700 text-gray-300'}">
-                            ${market.status === 'open' ? '進行中' : '已結算'}
+                        <span class="text-xs px-2.5 py-1 rounded-full ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
+                            ${market.status === 'open' ? '進行中' : '📜 歷史已結算 (1小時後銷毀)'}
                         </span>
                     </div>
                     <div class="text-xs text-gray-400 mb-4 space-y-1">
@@ -377,11 +398,11 @@
                     contentHTML += `</div>`;
                 } else {
                     let winnerText = market.options[market.resultIndex];
-                    contentHTML += `<div class="text-xs text-yellow-400 font-semibold">🏁 已結算：${winnerText}</div>`;
+                    contentHTML += `<div class="text-xs text-yellow-400 font-semibold">🏁 已結算勝出：${winnerText}</div>`;
                 }
                 contentHTML += `</div>`;
 
-                // 意見交流區（帶有頭銜與榮譽標籤）
+                // 意見交流區
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/60 bg-gray-950/40 p-4 rounded-xl">
                         <h4 class="text-xs font-semibold text-gray-400 mb-3">💬 意見交流區 (${market.comments.length})</h4>
@@ -447,7 +468,7 @@
             let newMarketObj = {
                 id: Date.now(),
                 creator: creator,
-                creatorScore: balance, // 紀錄當下發起人的積分與頭銜
+                creatorScore: balance,
                 category: category,
                 title: title,
                 deadline: deadline,
@@ -480,10 +501,10 @@
             let text = input.value.trim();
             if (!text) { alert('請輸入留言內容！'); return; }
 
-            let creator = document.getElementById('creatorName').value.trim() || '路人甲';
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
+            let creator = document.getElementById('creatorName').value.trim() || '路人甲';
             market.comments.push({ user: creator, score: balance, text: text });
 
             try {
@@ -525,6 +546,9 @@
             
             try {
                 if (market.reports >= 3) {
+                    if (window.db && market.docId) {
+                        await window.deleteDoc(window.doc(window.db, "markets", market.docId));
+                    }
                     markets = markets.filter(m => m.docId !== identifier && m.id != identifier);
                     alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
                 } else {
@@ -567,8 +591,10 @@
         async function resolveMarket(identifier, winningIdx) {
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
+            
             market.status = 'closed';
             market.resultIndex = winningIdx;
+            market.closedAt = Date.now(); // 記錄結算時間點，供 1 小時倒數銷毀使用
 
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
@@ -590,18 +616,22 @@
             if (userWinningBet > 0 && winningPool > 0) {
                 payout = Math.round((userWinningBet / winningPool) * remainingPool);
                 balance += payout;
-                alert(`結算完成！此題熱度排名第 ${rank + 1}（手續費 ${feeRate * 100}%）。你猜中了，贏得 ${payout} 點積分！`);
+                alert(`結算完成！此題移至歷史紀錄。你猜中了，贏得 ${payout} 點積分！(將於 1 小時後自動銷毀)`);
             } else {
-                alert(`結算完成！此題熱度排名第 ${rank + 1}。可惜你這局沒有押中。`);
+                alert(`結算完成！此題已移至歷史紀錄 (將於 1 小時後自動銷毀)。`);
             }
 
             try {
                 if (window.db && market.docId) {
+                    // 同步更新 Firebase 狀態與結算時間戳記
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         status: 'closed',
-                        resultIndex: winningIdx
+                        resultIndex: winningIdx,
+                        closedAt: market.closedAt
                     });
                 }
+                // 切換至歷史紀錄頁籤讓使用者直接看到
+                currentFilter = '歷史紀錄';
                 updateUI();
             } catch (e) {
                 console.error("結算失敗: ", e);
