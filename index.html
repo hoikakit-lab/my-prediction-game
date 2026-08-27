@@ -41,8 +41,8 @@
         }
     </script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen p-6">
-    <div class="max-w-4xl mx-auto">
+<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
         <!-- 頂部標題與資產 -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
             <div>
@@ -63,82 +63,97 @@
             </div>
         </header>
 
-        <!-- 🏆 全站預測大神排行榜區塊 -->
-        <section class="bg-gray-900 border border-gray-800 p-5 rounded-2xl mb-8 shadow-lg">
-            <h2 class="text-lg font-semibold mb-3 text-yellow-400 flex items-center gap-2">
-                <span>🏆 全站預測大神排行榜</span>
-                <span class="text-xs text-gray-400 font-normal">(即時積分排名)</span>
-            </h2>
-            <div id="leaderboardList" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <!-- 排行榜名次會自動帶入 -->
-            </div>
-        </section>
+        <!-- 主體網格佈局：左側主要操作區，右側排行榜側邊欄 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- 左側主要內容區 (佔 2 欄) -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- 建立新題目區塊 -->
+                <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-blue-400">✨ 發起新的預測局</h2>
+                        <!-- 每日發布次數提示 -->
+                        <span id="dailyQuotaBadge" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1 rounded-full">
+                            今日剩餘發布次數：<span id="remainingQuota" class="text-yellow-400 font-bold">3</span> / 3
+                        </span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">你的暱稱</label>
+                                <input type="text" id="creatorName" placeholder="例如：預測之神" value="路人甲" oninput="updateMyTitlePreview()"
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">預測分類</label>
+                                <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                                    <option value="生活日常">生活日常</option>
+                                    <option value="加密貨幣">加密貨幣</option>
+                                    <option value="科技AI">科技AI</option>
+                                    <option value="娛樂八卦">娛樂八卦</option>
+                                    <option value="體育賽事">體育賽事</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">結算截止時間</label>
+                                <input type="datetime-local" id="marketDeadline"
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">預測題目</label>
+                            <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
+                                class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
+                            <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
+                                class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                        </div>
+                        <div class="flex items-center gap-2 pt-1">
+                            <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600">
+                            <label for="stakeBoost" class="text-xs text-gray-300">
+                                【進階推廣】自願從帳戶鎖定 100 積分作為初始彩池（增加熱度排名！）
+                            </label>
+                        </div>
+                        <button onclick="createMarket()" id="createMarketBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-blue-900/30">
+                            免費發起預測 (雲端同步中)
+                        </button>
+                    </div>
+                </section>
 
-        <!-- 建立新題目區塊 -->
-        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl mb-8 shadow-lg">
-            <h2 class="text-xl font-semibold mb-4 text-blue-400">✨ 發起新的預測局</h2>
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">你的暱稱</label>
-                        <input type="text" id="creatorName" placeholder="例如：預測之神" value="路人甲" oninput="updateMyTitlePreview()"
-                            class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                <!-- 預測列表 -->
+                <section>
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                        <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
+                        <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
+                            <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
+                            <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
+                            <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
+                            <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
+                            <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
+                            <button onclick="filterCategory('歷史紀錄')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn border border-yellow-500/40 text-yellow-400" data-cat="歷史紀錄">📜 歷史紀錄</button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">預測分類</label>
-                        <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                            <option value="生活日常">生活日常</option>
-                            <option value="加密貨幣">加密貨幣</option>
-                            <option value="科技AI">科技AI</option>
-                            <option value="娛樂八卦">娛樂八卦</option>
-                            <option value="體育賽事">體育賽事</option>
-                        </select>
+                    <div id="marketList" class="space-y-6">
+                        <!-- 預測卡片會自動塞在這裡 -->
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">結算截止時間</label>
-                        <input type="datetime-local" id="marketDeadline"
-                            class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">預測題目</label>
-                    <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
-                    <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
-                        class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                </div>
-                <div class="flex items-center gap-2 pt-1">
-                    <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600">
-                    <label for="stakeBoost" class="text-xs text-gray-300">
-                        【進階推廣】自願從帳戶鎖定 100 積分作為初始彩池（增加熱度排名！）
-                    </label>
-                </div>
-                <button onclick="createMarket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-blue-900/30">
-                    免費發起預測 (雲端同步中)
-                </button>
+                </section>
             </div>
-        </section>
 
-        <!-- 預測列表 -->
-        <section>
-            <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
-                <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
-                    <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
-                    <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
-                    <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
-                    <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
-                    <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
-                    <button onclick="filterCategory('歷史紀錄')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn border border-yellow-500/40 text-yellow-400" data-cat="歷史紀錄">📜 歷史紀錄 (已結算)</button>
+            <!-- 右側側邊欄 (佔 1 欄)：全站預測大神排行榜 -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg sticky top-6">
+                    <h2 class="text-lg font-semibold mb-3 text-yellow-400 flex items-center gap-2 border-b border-gray-800 pb-3">
+                        <span>🏆 全站預測大神排行榜</span>
+                    </h2>
+                    <div id="leaderboardList" class="space-y-3">
+                        <!-- 排行榜名次會自動帶入 -->
+                    </div>
                 </div>
             </div>
-            <div id="marketList" class="space-y-6">
-                <!-- 預測卡片會自動塞在這裡 -->
-            </div>
-        </section>
+
+        </div>
     </div>
 
     <script>
@@ -147,6 +162,43 @@
         let markets = [];
         let userBets = {};
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
+
+        // 每日發布次數限制相關變數與檢查
+        const MAX_DAILY_POSTS = 3;
+
+        function getTodayDateString() {
+            let d = new Date();
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        }
+
+        function checkDailyQuota() {
+            let storedDate = localStorage.getItem('prediction_post_date');
+            let today = getTodayDateString();
+            if (storedDate !== today) {
+                localStorage.setItem('prediction_post_date', today);
+                localStorage.setItem('prediction_post_count', '0');
+            }
+            let count = parseInt(localStorage.getItem('prediction_post_count') || '0');
+            return MAX_DAILY_POSTS - count;
+        }
+
+        function updateQuotaUI() {
+            let remaining = checkDailyQuota();
+            let quotaEl = document.getElementById('remainingQuota');
+            let btnEl = document.getElementById('createMarketBtn');
+            if (quotaEl) quotaEl.innerText = remaining;
+            if (btnEl) {
+                if (remaining <= 0) {
+                    btnEl.innerText = '今日發布額度已用完 (明天請早)';
+                    btnEl.disabled = true;
+                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
+                } else {
+                    btnEl.innerText = `免費發起預測 (今日剩餘額度: ${remaining})`;
+                    btnEl.disabled = false;
+                    btnEl.className = 'w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-blue-900/30';
+                }
+            }
+        }
 
         // 根據積分判定頭銜與樣式
         function getTitleAndBadge(score) {
@@ -163,7 +215,6 @@
             }
         }
 
-        // 更新我自己的頭銜顯示
         function updateMyTitlePreview() {
             let titleObj = getTitleAndBadge(balance);
             let badgeEl = document.getElementById('userTitleBadge');
@@ -173,8 +224,7 @@
             }
         }
 
-        // 從 Firebase 載入資料並檢查過期已結算題目
-         async function loadMarketsFromFirebase() {
+        async function loadMarketsFromFirebase() {
             if (!window.db) return;
             try {
                 const querySnapshot = await window.getDocs(window.collection(window.db, "markets"));
@@ -184,26 +234,19 @@
 
                 querySnapshot.forEach((docSnap) => {
                     let data = docSnap.data();
-                    
-                    // 檢查是否為已結算且超過 1 小時 (3600000 毫秒)
                     if (data.status === 'closed' && data.closedAt) {
                         if (now - data.closedAt > 3600000) {
-                            // 超過 1 小時，從雲端刪除
                             deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
-                            return; // 不加入前端陣列
+                            return;
                         }
                     }
-
                     markets.push({ docId: docSnap.id, ...data });
                 });
 
-                // 執行雲端刪除過期資料
                 if (deletePromises.length > 0) {
                     await Promise.all(deletePromises);
-                    console.log(`已自動清除 ${deletePromises.length} 筆超過 1 小時的歷史結算資料。`);
                 }
 
-                // 如果雲端完全沒資料，給一個預設範例
                 if (markets.length === 0) {
                     markets.push({
                         id: 1,
@@ -243,7 +286,7 @@
             updateUI();
         }
 
-        // 渲染排行榜
+        // 渲染排行榜 (右側側邊欄)
         function renderLeaderboard() {
             let container = document.getElementById('leaderboardList');
             if (!container) return;
@@ -264,22 +307,26 @@
 
             let sortedPlayers = Object.keys(playersMap).map(name => {
                 return { name: name, score: playersMap[name] };
-            }).sort((a, b) => b.score - a.score).slice(0, 3);
+            }).sort((a, b) => b.score - a.score).slice(0, 10); // 右側可以多顯示幾名
 
             let html = '';
             sortedPlayers.forEach((p, idx) => {
-                let rankColors = ['border-yellow-500/50 bg-yellow-500/10 text-yellow-400', 'border-gray-400/40 bg-gray-800 text-gray-300', 'border-amber-700/40 bg-amber-900/10 text-amber-500'];
-                let rankBadge = ['🥇 榜首', '🥈 亞軍', '🥉 季軍'][idx];
+                let rankColors = [
+                    'border-yellow-500/50 bg-yellow-500/10 text-yellow-400', 
+                    'border-gray-400/40 bg-gray-800 text-gray-300', 
+                    'border-amber-700/40 bg-amber-900/10 text-amber-500'
+                ];
+                let rankBadge = ['🥇 1', '🥈 2', '🥉 3'][idx] || `#${idx + 1}`;
                 let titleObj = getTitleAndBadge(p.score);
 
                 html += `
-                    <div class="border ${rankColors[idx] || 'border-gray-800 bg-gray-900'} p-3 rounded-xl flex justify-between items-center text-xs">
+                    <div class="border ${rankColors[idx] || 'border-gray-800 bg-gray-950/60'} p-3 rounded-xl flex justify-between items-center text-xs">
                         <div>
-                            <div class="font-bold text-sm mb-0.5">${rankBadge} ${p.name}</div>
+                            <div class="font-bold text-sm mb-1">${rankBadge} - ${p.name}</div>
                             <span class="px-2 py-0.5 rounded-full border text-[10px] ${titleObj.class}">${titleObj.name}</span>
                         </div>
                         <div class="text-right">
-                            <span class="text-yellow-400 font-bold text-sm">${p.score}</span> 點
+                            <span class="text-yellow-400 font-bold text-sm">${p.score}</span> <span class="text-[10px] text-gray-400">點</span>
                         </div>
                     </div>
                 `;
@@ -290,6 +337,7 @@
         function updateUI() {
             document.getElementById('userBalance').innerText = balance;
             updateMyTitlePreview();
+            updateQuotaUI();
             renderLeaderboard();
 
             const container = document.getElementById('marketList');
@@ -302,8 +350,8 @@
             });
 
             let filtered = sortedMarkets.filter(m => {
-                if (currentFilter === '全部') return m.status === 'open'; // 首頁預設只看進行中
-                if (currentFilter === '歷史紀錄') return m.status === 'closed'; // 歷史紀錄看已結算
+                if (currentFilter === '全部') return m.status === 'open';
+                if (currentFilter === '歷史紀錄') return m.status === 'closed';
                 return m.category === currentFilter && m.status === 'open';
             });
 
@@ -333,7 +381,7 @@
                             <h3 class="text-lg font-bold">${market.title}</h3>
                         </div>
                         <span class="text-xs px-2.5 py-1 rounded-full ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
-                            ${market.status === 'open' ? '進行中' : '📜 歷史已結算 (1小時後銷毀)'}
+                            ${market.status === 'open' ? '進行中' : '📜 歷史已結算'}
                         </span>
                     </div>
                     <div class="text-xs text-gray-400 mb-4 space-y-1">
@@ -445,6 +493,13 @@
         }
 
         async function createMarket() {
+            // 檢查每日發布次數
+            let remaining = checkDailyQuota();
+            if (remaining <= 0) {
+                alert('你今天發布預測題目的次數已達上限（每日最多 3 個），請明天再來！');
+                return;
+            }
+
             let creator = document.getElementById('creatorName').value.trim() || '匿名';
             let category = document.getElementById('marketCategory').value;
             let title = document.getElementById('newMarketTitle').value.trim();
@@ -485,6 +540,11 @@
                 if (window.db) {
                     await window.addDoc(window.collection(window.db, "markets"), newMarketObj);
                 }
+                
+                // 扣減並儲存今日次數
+                let currentCount = parseInt(localStorage.getItem('prediction_post_count') || '0');
+                localStorage.setItem('prediction_post_count', (currentCount + 1).toString());
+
                 alert('發起成功！題目已順利推送到雲端大廳。');
                 document.getElementById('newMarketTitle').value = '';
                 document.getElementById('stakeBoost').checked = false;
@@ -594,7 +654,7 @@
             
             market.status = 'closed';
             market.resultIndex = winningIdx;
-            market.closedAt = Date.now(); // 記錄結算時間點，供 1 小時倒數銷毀使用
+            market.closedAt = Date.now();
 
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
@@ -616,21 +676,19 @@
             if (userWinningBet > 0 && winningPool > 0) {
                 payout = Math.round((userWinningBet / winningPool) * remainingPool);
                 balance += payout;
-                alert(`結算完成！此題移至歷史紀錄。你猜中了，贏得 ${payout} 點積分！(將於 1 小時後自動銷毀)`);
+                alert(`結算完成！此題移至歷史紀錄。你猜中了，贏得 ${payout} 點積分！`);
             } else {
-                alert(`結算完成！此題已移至歷史紀錄 (將於 1 小時後自動銷毀)。`);
+                alert(`結算完成！此題已移至歷史紀錄。`);
             }
 
             try {
                 if (window.db && market.docId) {
-                    // 同步更新 Firebase 狀態與結算時間戳記
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         status: 'closed',
                         resultIndex: winningIdx,
                         closedAt: market.closedAt
                     });
                 }
-                // 切換至歷史紀錄頁籤讓使用者直接看到
                 currentFilter = '歷史紀錄';
                 updateUI();
             } catch (e) {
