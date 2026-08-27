@@ -5,26 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全民預測大廳 - 討論區旗艦版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-<!-- 載入 Firebase 雲端大腦與資料庫工具 -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDqflAy-z9D5oScaCGuarPrBUAwaJZw5_k",
-      authDomain: "my-prediction-game-7a454.firebaseapp.com",
-      projectId: "my-prediction-game-7a454",
-      storageBucket: "my-prediction-game-7a454.firebasestorage.app",
-      messagingSenderId: "1032097879200",
-      appId: "1:1032097879200:web:ebc8565ad5c34e5eaf25c5"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqflAy-z9D5oScaCGuarPrBUAwaJZw5_k",
+            authDomain: "my-prediction-game-7a454.firebaseapp.com",
+            projectId: "my-prediction-game-7a454",
+            storageBucket: "my-prediction-game-7a454.firebasestorage.app",
+            messagingSenderId: "1032097879200",
+            appId: "1:1032097879200:web:ebc8565ad5c34e5eaf25c5"
+        };
 
-    // 初始化 Firebase 與資料庫
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    
-    console.log("Firebase 雲端資料庫連線就緒！", db);
-  </script>
+        // 初始化 Firebase 與資料庫
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        console.log("Firebase 雲端資料庫連線就緒！", db);
+
+        // 將變數與方法掛載到全域 window，讓 HTML 的 onclick 可以呼叫
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+        window.arrayUnion = arrayUnion;
+
+        // 初始化載入雲端資料
+        if (typeof window.loadMarketsFromFirebase === 'function') {
+            window.loadMarketsFromFirebase();
+        }
+    </script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
@@ -88,7 +102,7 @@
                     </label>
                 </div>
                 <button onclick="createMarket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition">
-                    免費發起預測 (引流熱推中)
+                    免費發起預測 (雲端同步中)
                 </button>
             </div>
         </section>
@@ -114,28 +128,45 @@
     <script>
         let balance = 1000;
         let currentFilter = '全部';
-
-        let markets = [
-            {
-                id: 1,
-                creator: "比特幣大戶",
-                category: "加密貨幣",
-                title: "比特幣今年底前會突破 15 萬美元嗎？",
-                deadline: "2026-12-31T23:59",
-                options: ["會", "不會"],
-                pools: [500, 500],
-                status: 'open',
-                resultIndex: null,
-                likes: 12,
-                reports: 0,
-                comments: [
-                    { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！" },
-                    { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。" }
-                ]
-            }
-        ];
+        let markets = [];
         let userBets = {};
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
+
+        // 從 Firebase 載入資料
+        async function loadMarketsFromFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "markets"));
+                markets = [];
+                querySnapshot.forEach((docSnap) => {
+                    markets.push({ docId: docSnap.id, ...docSnap.data() });
+                });
+                // 如果雲端完全沒資料，給一個預設範例
+                if (markets.length === 0) {
+                    markets.push({
+                        id: 1,
+                        creator: "比特幣大戶",
+                        category: "加密貨幣",
+                        title: "比特幣今年底前會突破 15 萬美元嗎？",
+                        deadline: "2026-12-31T23:59",
+                        options: ["會", "不會"],
+                        pools: [500, 500],
+                        status: 'open',
+                        resultIndex: null,
+                        likes: 12,
+                        reports: 0,
+                        comments: [
+                            { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！" },
+                            { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。" }
+                        ]
+                    });
+                }
+                updateUI();
+            } catch (e) {
+                console.error("載入雲端資料失敗: ", e);
+            }
+        }
+        window.loadMarketsFromFirebase = loadMarketsFromFirebase;
 
         function filterCategory(cat) {
             currentFilter = cat;
@@ -199,7 +230,6 @@
                     </div>
                 `;
 
-                // 選項與下注進度條
                 contentHTML += `<div class="space-y-3 mb-4">`;
                 market.options.forEach((opt, idx) => {
                     let pool = market.pools[idx];
@@ -220,7 +250,7 @@
 
                     if (market.status === 'open') {
                         contentHTML += `
-                            <button onclick="bet(${market.id}, ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition">
+                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition">
                                 押「${opt}」 (+100點)
                             </button>
                         `;
@@ -229,14 +259,13 @@
                 });
                 contentHTML += `</div>`;
 
-                // 底部按鈕與結算
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800 flex flex-wrap justify-between items-center gap-2">
                         <div class="flex items-center gap-2">
-                            <button onclick="likeMarket(${market.id})" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1">
+                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1">
                                 👍 有趣 (${market.likes})
                             </button>
-                            <button onclick="reportMarket(${market.id})" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700">
+                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700">
                                 檢舉
                             </button>
                         </div>
@@ -245,7 +274,7 @@
                 if (market.status === 'open') {
                     contentHTML += `<div class="flex flex-wrap gap-1 items-center"><span class="text-xs text-gray-500">結算：</span>`;
                     market.options.forEach((opt, idx) => {
-                        contentHTML += `<button onclick="resolveMarket(${market.id}, ${idx})" class="text-xs bg-gray-800 hover:bg-gray-700 text-yellow-400 px-2.5 py-1 rounded border border-gray-700">「${opt}」勝出</button>`;
+                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-800 hover:bg-gray-700 text-yellow-400 px-2.5 py-1 rounded border border-gray-700">「${opt}」勝出</button>`;
                     });
                     contentHTML += `</div>`;
                 } else {
@@ -254,7 +283,6 @@
                 }
                 contentHTML += `</div>`;
 
-                // 💬 評論區專屬區塊
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/60 bg-gray-950/40 p-4 rounded-xl">
                         <h4 class="text-xs font-semibold text-gray-400 mb-3">💬 意見交流區 (${market.comments.length})</h4>
@@ -277,9 +305,9 @@
                 contentHTML += `
                         </div>
                         <div class="flex gap-2">
-                            <input type="text" id="commentInput_${market.id}" placeholder="說點什麼來辯論一下..." 
+                            <input type="text" id="commentInput_${market.docId || market.id}" placeholder="說點什麼來辯論一下..." 
                                 class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-blue-500">
-                            <button onclick="addComment(${market.id})" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold transition">
+                            <button onclick="addComment('${market.docId || market.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold transition">
                                 留言
                             </button>
                         </div>
@@ -291,7 +319,7 @@
             });
         }
 
-        function createMarket() {
+        async function createMarket() {
             let creator = document.getElementById('creatorName').value.trim() || '匿名';
             let category = document.getElementById('marketCategory').value;
             let title = document.getElementById('newMarketTitle').value.trim();
@@ -312,7 +340,7 @@
                 initialPools[0] += 100;
             }
 
-            markets.push({
+            let newMarketObj = {
                 id: Date.now(),
                 creator: creator,
                 category: category,
@@ -325,61 +353,116 @@
                 likes: 1,
                 reports: 0,
                 comments: []
-            });
+            };
 
-            document.getElementById('newMarketTitle').value = document.getElementById('stakeBoost').checked = false;
-            alert('發起成功！題目已順利推送到大廳。');
-            updateUI();
+            try {
+                if (window.db) {
+                    await window.addDoc(window.collection(window.db, "markets"), newMarketObj);
+                }
+                alert('發起成功！題目已順利推送到雲端大廳。');
+                document.getElementById('newMarketTitle').value = '';
+                document.getElementById('stakeBoost').checked = false;
+                loadMarketsFromFirebase();
+            } catch (e) {
+                console.error("發起失敗: ", e);
+                alert('發起失敗，請檢查網路連線。');
+            }
         }
+        window.createMarket = createMarket;
 
-        function addComment(marketId) {
-            let input = document.getElementById(`commentInput_${marketId}`);
+        async function addComment(identifier) {
+            let input = document.getElementById(`commentInput_${identifier}`);
             let text = input.value.trim();
             if (!text) { alert('請輸入留言內容！'); return; }
 
             let creator = document.getElementById('creatorName').value.trim() || '路人甲';
-            let market = markets.find(m => m.id === marketId);
+            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
+            if (!market) return;
+
             market.comments.push({ user: creator, text: text });
 
-            input.value = '';
-            updateUI();
-        }
-
-        function likeMarket(marketId) {
-            let market = markets.find(m => m.id === marketId);
-            market.likes++;
-            updateUI();
-        }
-
-        function reportMarket(marketId) {
-            let market = markets.find(m => m.id === marketId);
-            market.reports++;
-            if (market.reports >= 3) {
-                markets = markets.filter(m => m.id !== marketId);
-                alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
-            } else {
-                alert('感謝回報，管理員會盡快審查此題目。');
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        comments: market.comments
+                    });
+                }
+                input.value = '';
+                updateUI();
+            } catch (e) {
+                console.error("留言失敗: ", e);
             }
-            updateUI();
         }
+        window.addComment = addComment;
 
-        function bet(marketId, optionIdx) {
+        async function likeMarket(identifier) {
+            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
+            if (!market) return;
+            market.likes++;
+
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        likes: market.likes
+                    });
+                }
+                updateUI();
+            } catch (e) {
+                console.error("按讚失敗: ", e);
+            }
+        }
+        window.likeMarket = likeMarket;
+
+        async function reportMarket(identifier) {
+            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
+            if (!market) return;
+            market.reports++;
+            
+            try {
+                if (market.reports >= 3) {
+                    markets = markets.filter(m => m.docId !== identifier && m.id != identifier);
+                    alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
+                    // 如果有 docId 可以選擇在firestore刪除，此處直接重新整理UI
+                } else {
+                    alert('感謝回報，管理員會盡快審查此題目。');
+                }
+                updateUI();
+            } catch (e) {
+                console.error("檢舉失敗: ", e);
+            }
+        }
+        window.reportMarket = reportMarket;
+
+        async function bet(identifier, optionIdx) {
             let cost = 100;
             if (balance < cost) { alert('積分不足！點右上角「補領積分」加值。'); return; }
 
             balance -= cost;
-            let market = markets.find(m => m.id === marketId);
+            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
+            if (!market) return;
+
             market.pools[optionIdx] += cost;
 
-            if (!userBets[marketId]) userBets[marketId] = {};
-            if (!userBets[marketId][optionIdx]) userBets[marketId][optionIdx] = 0;
-            userBets[marketId][optionIdx] += cost;
+            if (!userBets[market.id]) userBets[market.id] = {};
+            if (!userBets[market.id][optionIdx]) userBets[market.id][optionIdx] = 0;
+            userBets[market.id][optionIdx] += cost;
 
-            updateUI();
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        pools: market.pools
+                    });
+                }
+                updateUI();
+            } catch (e) {
+                console.error("下注失敗: ", e);
+            }
         }
+        window.bet = bet;
 
-        function resolveMarket(marketId, winningIdx) {
-            let market = markets.find(m => m.id === marketId);
+        async function resolveMarket(identifier, winningIdx) {
+            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
+            if (!market) return;
             market.status = 'closed';
             market.resultIndex = winningIdx;
 
@@ -388,14 +471,14 @@
                 let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
                 return totalB - totalA;
             });
-            let rank = sortedMarkets.findIndex(m => m.id === marketId);
+            let rank = sortedMarkets.findIndex(m => m.id === market.id);
 
             let totalPool = market.pools.reduce((a, b) => a + b, 0);
             let feeRate = rank < 20 ? 0.01 : 0.05;
             let platformFee = Math.round(totalPool * feeRate);
             let remainingPool = totalPool - platformFee;
 
-            let userBetObj = userBets[marketId] || {};
+            let userBetObj = userBets[market.id] || {};
             let userWinningBet = userBetObj[winningIdx] || 0;
             let winningPool = market.pools[winningIdx];
 
@@ -408,13 +491,25 @@
                 alert(`結算完成！此題熱度排名第 ${rank + 1}。可惜你這局沒有押中。`);
             }
 
-            updateUI();
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        status: 'closed',
+                        resultIndex: winningIdx
+                    });
+                }
+                updateUI();
+            } catch (e) {
+                console.error("結算失敗: ", e);
+            }
         }
+        window.resolveMarket = resolveMarket;
 
         function resetBalance() {
             balance += 1000;
             updateUI();
         }
+        window.resetBalance = resetBalance;
 
         updateUI();
     </script>
