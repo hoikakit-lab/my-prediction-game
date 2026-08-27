@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全民預測大廳 - 競技賽季殿堂版 🏆</title>
+    <title>全民預測大廳 - 競技賽季殿堂升級版 🏆</title>
     <!-- 引入專業現代字體 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,19 +29,31 @@
         .god-gold-effect {
             animation: goldShine 2s infinite;
         }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .shimmer-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            animation: shimmer 2s infinite;
+        }
         /* 質感玻璃擬態 */
         .glass-card {
-            background: rgba(17, 24, 39, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(17, 24, 39, 0.78);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .glass-card-hover {
-            transition: all 0.25s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .glass-card-hover:hover {
-            border-color: rgba(59, 130, 246, 0.3);
-            box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 12px 40px -10px rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
         }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #030712; }
@@ -91,10 +103,10 @@
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-6">
             <div class="text-center lg:text-left">
                 <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
-                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">殿堂升級版</span>
+                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">殿堂頂級版</span>
                 </h1>
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
-                    <p class="text-gray-400 text-xs md:text-sm">🔥 即時對賭、每日簽到、專屬下注歷史與名人堂榮譽。</p>
+                    <p class="text-gray-400 text-xs md:text-sm">🔥 即時對賭、智慧急迫排序、專屬下注歷史與名人堂榮譽。</p>
                     <span id="beijingClock" class="text-xs bg-gray-900/90 border border-gray-800 text-cyan-400 px-3.5 py-1.5 rounded-xl font-mono shadow-inner">
                         北京時間：載入中...
                     </span>
@@ -126,13 +138,13 @@
                         </div>
                     </div>
                     <div class="flex flex-col gap-1.5 border-l border-gray-800 pl-3">
-                        <button onclick="openCheckinModal()" class="bg-emerald-900/40 hover:bg-emerald-900/70 text-emerald-200 text-[10px] px-3 py-1 rounded-lg transition border border-emerald-700/50 flex items-center gap-1 font-medium">
+                        <button onclick="openCheckinModal()" class="bg-emerald-900/40 hover:bg-emerald-900/70 text-emerald-200 text-[10px] px-3 py-1 rounded-lg transition border border-emerald-700/50 flex items-center gap-1 font-medium active:scale-95">
                             📅 每日簽到
                         </button>
-                        <button onclick="openProfileModal()" class="bg-purple-900/40 hover:bg-purple-900/70 text-purple-200 text-[10px] px-3 py-1 rounded-lg transition border border-purple-700/50 font-medium">
+                        <button onclick="openProfileModal()" class="bg-purple-900/40 hover:bg-purple-900/70 text-purple-200 text-[10px] px-3 py-1 rounded-lg transition border border-purple-700/50 font-medium active:scale-95">
                             📊 個人戰績
                         </button>
-                        <button onclick="logoutUser()" class="bg-red-900/30 hover:bg-red-900/55 text-red-300 text-[10px] px-3 py-1 rounded-lg transition border border-red-700/30 font-medium">
+                        <button onclick="logoutUser()" class="bg-red-900/30 hover:bg-red-900/55 text-red-300 text-[10px] px-3 py-1 rounded-lg transition border border-red-700/30 font-medium active:scale-95">
                             登出
                         </button>
                     </div>
@@ -204,14 +216,14 @@
                 <!-- 預測列表 -->
                 <section>
                     <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
-                        <h2 class="text-lg md:text-xl font-bold text-purple-400">🔥 熱門對賭清單與討論區</h2>
+                        <h2 class="text-lg md:text-xl font-bold text-purple-400">🔥 智能熱門對賭清單</h2>
                         <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
-                            <button onclick="filterCategory('全部')" class="px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn" data-cat="全部">全部</button>
-                            <button onclick="filterCategory('生活日常')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="生活日常">生活日常</button>
-                            <button onclick="filterCategory('加密貨幣')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
-                            <button onclick="filterCategory('科技AI')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="科技AI">科技AI</button>
-                            <button onclick="filterCategory('娛樂八卦')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
-                            <button onclick="filterCategory('歷史紀錄')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-yellow-500/30 text-yellow-400 hover:bg-gray-800 transition cat-btn" data-cat="歷史紀錄">📜 歷史紀錄</button>
+                            <button onclick="filterCategory('全部')" class="px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn active:scale-95" data-cat="全部">全部</button>
+                            <button onclick="filterCategory('生活日常')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="生活日常">生活日常</button>
+                            <button onclick="filterCategory('加密貨幣')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="加密貨幣">加密貨幣</button>
+                            <button onclick="filterCategory('科技AI')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="科技AI">科技AI</button>
+                            <button onclick="filterCategory('娛樂八卦')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="娛樂八卦">娛樂八卦</button>
+                            <button onclick="filterCategory('歷史紀錄')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-yellow-500/30 text-yellow-400 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="歷史紀錄">📜 歷史紀錄</button>
                         </div>
                     </div>
                     <div id="marketList" class="space-y-6">
@@ -387,7 +399,14 @@
         let allUsersData = {};
         let hallOfFameData = [];
         
-        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
+        // 增強型多空賽局色彩配置
+        const optionThemeColors = [
+            { bg: 'bg-emerald-500', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+            { bg: 'bg-rose-500', text: 'text-rose-400', border: 'border-rose-500/30' },
+            { bg: 'bg-blue-500', text: 'text-blue-400', border: 'border-blue-500/30' },
+            { bg: 'bg-amber-500', text: 'text-amber-400', border: 'border-amber-500/30' },
+            { bg: 'bg-purple-500', text: 'text-purple-400', border: 'border-purple-500/30' }
+        ];
         const MAX_DAILY_POSTS = 3;
 
         setInterval(() => {
@@ -566,7 +585,7 @@
                 let diff = deadlineMs - now;
                 if (diff <= 0) {
                     el.innerText = "⏰ 狀態：已過截止時間 (等待結算)";
-                    el.className = "text-red-400 font-semibold market-deadline-timer";
+                    el.className = "text-rose-400 font-semibold market-deadline-timer";
                 } else {
                     let d = Math.floor(diff / (1000 * 60 * 60 * 24));
                     let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -928,9 +947,9 @@
             } else if (score >= 3000) {
                 return { name: "💎 市場先知", class: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
             } else if (score >= 1800) {
-                return { name: "🔥 常勝將軍", class: "bg-red-500/20 text-red-300 border-red-500/40" };
+                return { name: "🔥 常勝將軍", class: "bg-rose-500/20 text-rose-300 border-rose-500/40" };
             } else if (score >= 1200) {
-                return { name: "📈 投資達人", class: "bg-green-500/20 text-green-300 border-green-500/40" };
+                return { name: "📈 投資達人", class: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" };
             } else {
                 return { name: "🌱 新手上路", class: "bg-blue-900/40 text-blue-300 border-blue-700/40" };
             }
@@ -949,9 +968,9 @@
             currentFilter = cat;
             document.querySelectorAll('.cat-btn').forEach(btn => {
                 if (btn.getAttribute('data-cat') === cat) {
-                    btn.className = 'px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn';
+                    btn.className = 'px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn active:scale-95';
                 } else {
-                    btn.className = 'px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn';
+                    btn.className = 'px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95';
                 }
             });
             updateUI();
@@ -1003,10 +1022,23 @@
             const container = document.getElementById('marketList');
             container.innerHTML = '';
 
+            let now = Date.now();
+            // 智能急迫性與熱度加權排序邏輯
             let sortedMarkets = [...markets].sort((a, b) => {
-                let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
-                let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
-                return totalB - totalA;
+                let deadlineA = a.deadline ? new Date(a.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
+                let deadlineB = b.deadline ? new Date(b.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
+                
+                let timeLeftA = deadlineA - now;
+                let timeLeftB = deadlineB - now;
+
+                // 若快到期（24小時內）且未過期，給予高度權重往前排
+                let urgencyBonusA = (timeLeftA > 0 && timeLeftA < 86400000) ? 5000 : 0;
+                let urgencyBonusB = (timeLeftB > 0 && timeLeftB < 86400000) ? 5000 : 0;
+
+                let scoreA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 30) + (a.comments.length * 15) + urgencyBonusA;
+                let scoreB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 30) + (b.comments.length * 15) + urgencyBonusB;
+                
+                return scoreB - scoreA;
             });
 
             let filtered = sortedMarkets.filter(m => {
@@ -1026,7 +1058,7 @@
                 let isTop20 = globalRank < 20;
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
                 
-                let deadlineMs = market.deadline ? new Date(market.deadline.replace(/-/g, '/')).getTime() : (Date.now() + 86400000);
+                let deadlineMs = market.deadline ? new Date(market.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
                 let formattedTime = market.deadline || '無期限';
                 
                 let creatorScore = (allUsersData[market.creator] && allUsersData[market.creator].balance) || 1200;
@@ -1042,7 +1074,7 @@
                             <span class="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg font-medium">${market.category}</span>
                             <h3 class="text-lg md:text-xl font-bold tracking-tight text-gray-100">${market.title}</h3>
                         </div>
-                        <span class="text-xs px-3 py-1 rounded-full font-medium ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
+                        <span class="text-xs px-3 py-1 rounded-full font-medium ${market.status === 'open' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
                             ${market.status === 'open' ? '進行中' : '📜 歷史已結算'}
                         </span>
                     </div>
@@ -1064,9 +1096,9 @@
                             <span class="text-gray-600">|</span> 截止時間：<span class="text-gray-200">${formattedTime}</span>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-red-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
+                            <span class="text-rose-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
                             <span class="text-gray-600">|</span> 總彩池：<span class="text-yellow-400 font-bold">${totalPool} 點</span>
-                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-md text-[10px] font-semibold">🔥 熱門前20 (手續費1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費5%)</span>'}
+                            ${isTop20 ? '<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-md text-[10px] font-semibold">🔥 熱門前20 (手續費1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費5%)</span>'}
                         </div>
                     </div>
                 `;
@@ -1075,25 +1107,23 @@
                 market.options.forEach((opt, idx) => {
                     let pool = market.pools[idx];
                     let percent = totalPool === 0 ? Math.round(100 / market.options.length) : Math.round((pool / totalPool) * 100);
-                    let colorClass = colors[idx % colors.length];
+                    let theme = optionThemeColors[idx % optionThemeColors.length];
                     let userOptionBet = (userBets[market.id] && userBets[market.id][idx]) || 0;
 
                     contentHTML += `
-                        <div class="bg-gray-950/60 p-3.5 rounded-2xl border border-gray-800/80">
+                        <div class="bg-gray-950/70 p-3.5 rounded-2xl border ${theme.border}">
                             <div class="flex justify-between text-sm mb-1.5 font-medium">
-                                <span class="text-gray-200 font-semibold">${opt} <span class="text-xs text-gray-400 font-normal">(${percent}%) - 池: ${pool}</span></span>
+                                <span class="text-gray-100 font-bold">${opt} <span class="text-xs ${theme.text} font-semibold">(${percent}%) - 池: ${pool}</span></span>
                                 <span class="text-xs text-yellow-400/90 font-medium">你已下注: ${userOptionBet} 點</span>
                             </div>
-                            <div class="w-full bg-gray-900 h-3 rounded-full overflow-hidden mb-3 p-0.5 border border-gray-800">
-                                <div class="${colorClass} h-full rounded-full transition-all duration-500 relative shadow-sm" style="width: ${percent}%">
-                                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-white/70 animate-pulse rounded-full"></div>
-                                </div>
+                            <div class="w-full bg-gray-900 h-3.5 rounded-full overflow-hidden mb-3 p-0.5 border border-gray-800 relative">
+                                <div class="${theme.bg} h-full rounded-full transition-all duration-500 relative shimmer-bar shadow-md" style="width: ${percent}%"></div>
                             </div>
                     `;
 
                     if (market.status === 'open') {
                         contentHTML += `
-                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700/80 text-gray-200 py-2.5 rounded-xl text-xs font-bold transition active:scale-[0.99] shadow-sm">
+                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700/80 text-gray-200 py-2.5 rounded-xl text-xs font-bold transition active:scale-95 shadow-sm">
                                 押「${opt}」 (+100點)
                             </button>
                         `;
@@ -1105,10 +1135,10 @@
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/80 flex flex-wrap justify-between items-center gap-3">
                         <div class="flex items-center gap-2">
-                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-green-400 px-3.5 py-2 rounded-xl border border-gray-800 flex items-center gap-1.5 transition active:scale-95 font-medium shadow-sm">
+                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-emerald-400 px-3.5 py-2 rounded-xl border border-gray-800 flex items-center gap-1.5 transition active:scale-95 font-medium shadow-sm">
                                 👍 有趣 (${market.likes})
                             </button>
-                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-red-400 px-3.5 py-2 rounded-xl border border-gray-800 transition font-medium shadow-sm">
+                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-rose-400 px-3.5 py-2 rounded-xl border border-gray-800 transition active:scale-95 font-medium shadow-sm">
                                 檢舉
                             </button>
                         </div>
@@ -1117,7 +1147,7 @@
                 if (market.status === 'open') {
                     contentHTML += `<div class="flex flex-wrap gap-1.5 items-center"><span class="text-xs text-gray-500 font-medium">結算：</span>`;
                     market.options.forEach((opt, idx) => {
-                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-950 hover:bg-gray-800 text-yellow-400 px-3 py-2 rounded-xl border border-yellow-500/30 font-semibold transition shadow-sm">「${opt}」勝出</button>`;
+                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-950 hover:bg-gray-800 text-yellow-400 px-3 py-2 rounded-xl border border-yellow-500/30 font-semibold transition active:scale-95 shadow-sm">「${opt}」勝出</button>`;
                     });
                     contentHTML += `</div>`;
                 } else {
@@ -1127,7 +1157,7 @@
                     contentHTML += `
                         <div class="text-xs space-y-1 text-right">
                             <div class="text-yellow-400 font-bold">🏁 結算勝出：${winnerText} (於 ${closedTimeStr})</div>
-                            <div class="text-red-400 font-mono history-expiry-timer" data-closedat="${currentClosedAt}">⏳ 離自動清除剩餘：計算中...</div>
+                            <div class="text-rose-400 font-mono history-expiry-timer" data-closedat="${currentClosedAt}">⏳ 離自動清除剩餘：計算中...</div>
                         </div>
                     `;
                 }
@@ -1367,8 +1397,8 @@
             
             let closedAt = market.closedAt || Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
-                let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
-                let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
+                let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 30) + (a.comments.length * 15);
+                let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 30) + (b.comments.length * 15);
                 return totalB - totalA;
             });
             let rank = sortedMarkets.findIndex(m => m.id === market.id);
@@ -1490,7 +1520,7 @@
             } else {
                 let html = '';
                 myBetLogs.forEach(log => {
-                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status.includes('未中') ? 'text-red-400 font-medium' : 'text-yellow-400 font-medium';
+                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status.includes('未中') ? 'text-rose-400 font-medium' : 'text-yellow-400 font-medium';
                     html += `
                         <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center shadow-sm">
                             <div>
