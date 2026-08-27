@@ -317,12 +317,11 @@
             clockEl.innerText = `北京時間：${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
         }
 
-        // 以北京時間為基準計算賽季倒數，確保不隨意重置
+        // 嚴格校正北京時間的賽季倒數（完全以北京時間年月日時分秒做數學計算）
         function updateSeasonCountdown() {
             let countdownEl = document.getElementById('seasonCountdown');
             if (!countdownEl) return;
 
-            // 取得目前的北京時間物件
             let now = new Date();
             let bjFormatter = new Intl.DateTimeFormat('en-US', {
                 timeZone: 'Asia/Shanghai',
@@ -334,8 +333,20 @@
                 second: 'numeric',
                 hour12: false
             });
-            let bjDateStr = bjFormatter.format(now);
-            let bjNowTime = new Date(bjDateStr).getTime();
+            
+            let parts = bjFormatter.formatToParts(now);
+            let p = {};
+            parts.forEach(item => p[item.type] = item.value);
+
+            // 透過數值拼湊確保精準的北京當前時間戳（+08:00）
+            let bjNowTime = Date.UTC(
+                parseInt(p.year), 
+                parseInt(p.month) - 1, 
+                parseInt(p.day), 
+                parseInt(p.hour), 
+                parseInt(p.minute), 
+                parseInt(p.second)
+            );
 
             // 從 localStorage 取得或初始化北京時間的賽季結束日（預設 90 天）
             let seasonEndStorage = localStorage.getItem('beijing_season_end_timestamp');
@@ -994,7 +1005,7 @@
             }
 
             let cost = 100;
-            if (balance < cost) { alert('積分不足！點·補領積分·加值。'); return; }
+            if (balance < cost) { alert('積分不足！點「補領積分」加值。'); return; }
 
             balance -= cost;
             await updateCloudUserData();
