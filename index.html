@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全民預測大廳 - 討論區旗艦版</title>
+    <title>全民預測大廳 - 排行榜與榮譽旗艦版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
@@ -19,13 +19,9 @@
             appId: "1:1032097879200:web:ebc8565ad5c34e5eaf25c5"
         };
 
-        // 初始化 Firebase 與資料庫
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        console.log("Firebase 雲端資料庫連線就緒！", db);
-
-        // 將變數與方法掛載到全域 window，讓 HTML 的 onclick 可以呼叫
         window.db = db;
         window.collection = collection;
         window.addDoc = addDoc;
@@ -34,95 +30,116 @@
         window.doc = doc;
         window.arrayUnion = arrayUnion;
 
-        // 初始化載入雲端資料
         if (typeof window.loadMarketsFromFirebase === 'function') {
             window.loadMarketsFromFirebase();
         }
     </script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen p-6">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <!-- 頂部標題與資產 -->
-        <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (討論區旗艦版)</h1>
-                <p class="text-gray-400 text-sm mt-1">🔥 下注、出題、邊看邊聊！熱門前 20 名享手續費優惠。</p>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (榮譽殿堂版)</h1>
+                <p class="text-gray-400 text-sm mt-1">🔥 證明你的眼光，爭奪全站預測之神寶座！</p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl text-right">
-                    <span class="text-xs text-gray-400 block">你的可用積分</span>
-                    <span id="userBalance" class="text-2xl font-bold text-yellow-400">1000</span> 點
+                    <span id="userTitleBadge" class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded block mb-1 text-center font-bold">新手村村民</span>
+                    <span class="text-xs text-gray-400">你的可用積分: <span id="userBalance" class="text-xl font-bold text-yellow-400">1000</span> 點</span>
                 </div>
-                <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-2 rounded-xl transition border border-gray-700">
-                    補領積分
+                <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-3 rounded-xl transition border border-gray-700">
+                    每日救濟金
                 </button>
             </div>
         </header>
 
-        <!-- 建立新題目區塊 -->
-        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl mb-8 shadow-lg">
-            <h2 class="text-xl font-semibold mb-4 text-blue-400">✨ 發起新的預測局</h2>
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">你的暱稱</label>
-                        <input type="text" id="creatorName" placeholder="例如：預測之神" value="路人甲"
-                            class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左側/中間：建立與預測列表 (佔 2 欄) -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- 建立新題目區塊 -->
+                <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-blue-400">✨ 發起新的預測局</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">你的暱稱</label>
+                                <input type="text" id="creatorName" placeholder="例如：預測之神" value="路人甲" oninput="updateProfileDisplay()"
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">預測分類</label>
+                                <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                                    <option value="生活日常">生活日常</option>
+                                    <option value="加密貨幣">加密貨幣</option>
+                                    <option value="科技AI">科技AI</option>
+                                    <option value="娛樂八卦">娛樂八卦</option>
+                                    <option value="體育賽事">體育賽事</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">結算截止時間</label>
+                                <input type="datetime-local" id="marketDeadline"
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">預測題目</label>
+                            <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
+                                class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
+                            <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
+                                class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                        </div>
+                        <button onclick="createMarket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition text-sm">
+                            免費發起預測 (雲端同步)
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">預測分類</label>
-                        <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                            <option value="生活日常">生活日常</option>
-                            <option value="加密貨幣">加密貨幣</option>
-                            <option value="科技AI">科技AI</option>
-                            <option value="娛樂八卦">娛樂八卦</option>
-                            <option value="體育賽事">體育賽事</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">結算截止時間</label>
-                        <input type="datetime-local" id="marketDeadline"
-                            class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">預測題目</label>
-                    <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
-                    <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
-                        class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                </div>
-                <div class="flex items-center gap-2 pt-1">
-                    <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600">
-                    <label for="stakeBoost" class="text-xs text-gray-300">
-                        【進階推廣】自願從帳戶鎖定 100 積分作為初始彩池（增加熱度排名！）
-                    </label>
-                </div>
-                <button onclick="createMarket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition">
-                    免費發起預測 (雲端同步中)
-                </button>
-            </div>
-        </section>
+                </section>
 
-        <!-- 預測列表 -->
-        <section>
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
-                <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
-                    <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
-                    <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
-                    <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
-                    <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
-                    <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
-                </div>
+                <!-- 預測列表 -->
+                <section>
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                        <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
+                        <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
+                            <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
+                            <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
+                            <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
+                            <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
+                            <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
+                        </div>
+                    </div>
+                    <div id="marketList" class="space-y-6">
+                        <!-- 預測卡片動態載入 -->
+                    </div>
+                </section>
             </div>
-            <div id="marketList" class="space-y-6">
-                <!-- 預測卡片會自動塞在這裡 -->
+
+            <!-- 右側：全站預測大神排行榜 (佔 1 欄) -->
+            <div class="space-y-6">
+                <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-lg sticky top-6">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-1 flex items-center gap-2">
+                        🏆 全站預測大神榜
+                    </h3>
+                    <p class="text-xs text-gray-400 mb-4">根據積分與勝場數自動排名</p>
+                    
+                    <div id="leaderboardList" class="space-y-3">
+                        <!-- 排行榜動態載入 -->
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-gray-800 text-xs text-gray-400 space-y-2">
+                        <div class="font-semibold text-gray-300">🎖️ 頭銜解鎖規則：</div>
+                        <div>🔹 <span class="text-purple-400">新手村村民</span>：初始身份</div>
+                        <div>🔹 <span class="text-blue-400">精明玩家</span>：積分 > 1,500</div>
+                        <div>🔹 <span class="text-green-400">市場先知</span>：積分 > 3,000</div>
+                        <div>🔹 <span class="text-yellow-400">常勝將軍</span>：積分 > 5,000</div>
+                        <div>🔹 <span class="text-red-400">👑 預測之神</span>：積分 > 10,000</div>
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
     </div>
 
     <script>
@@ -131,6 +148,23 @@
         let markets = [];
         let userBets = {};
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
+
+        // 根據積分計算頭銜
+        function getTitleByBalance(pts) {
+            if (pts >= 10000) return { name: "👑 預測之神", color: "bg-red-500/20 text-red-400 border-red-500/30" };
+            if (pts >= 5000) return { name: "🔥 常勝將軍", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+            if (pts >= 3000) return { name: "🔮 市場先知", color: "bg-green-500/20 text-green-400 border-green-500/30" };
+            if (pts >= 1500) return { name: "💡 精明玩家", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" };
+            return { name: "🌱 新手村村民", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" };
+        }
+
+        function updateProfileDisplay() {
+            let titleInfo = getTitleByBalance(balance);
+            let badge = document.getElementById('userTitleBadge');
+            badge.innerText = titleInfo.name;
+            badge.className = `text-[10px] border px-2 py-0.5 rounded block mb-1 text-center font-bold ${titleInfo.color}`;
+            document.getElementById('userBalance').innerText = balance;
+        }
 
         // 從 Firebase 載入資料
         async function loadMarketsFromFirebase() {
@@ -141,7 +175,6 @@
                 querySnapshot.forEach((docSnap) => {
                     markets.push({ docId: docSnap.id, ...docSnap.data() });
                 });
-                // 如果雲端完全沒資料，給一個預設範例
                 if (markets.length === 0) {
                     markets.push({
                         id: 1,
@@ -156,8 +189,8 @@
                         likes: 12,
                         reports: 0,
                         comments: [
-                            { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！" },
-                            { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。" }
+                            { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！", points: 3500 },
+                            { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。", points: 1200 }
                         ]
                     });
                 }
@@ -180,8 +213,52 @@
             updateUI();
         }
 
+        // 計算排行榜與更新介面
         function updateUI() {
-            document.getElementById('userBalance').innerText = balance;
+            updateProfileDisplay();
+            
+            // 收集所有用戶的積分與戰績（從發起人、留言者、目前玩家萃取）
+            let userScores = {};
+            userScores[document.getElementById('creatorName').value.trim() || '路人甲'] = { points: balance, wins: 2 };
+
+            markets.forEach(m => {
+                if (!userScores[m.creator]) userScores[m.creator] = { points: 1000, wins: 1 };
+                m.comments.forEach(c => {
+                    if (!userScores[c.user]) {
+                        userScores[c.user] = { points: c.points || 1000, wins: 0 };
+                    }
+                });
+            });
+
+            // 轉成陣列並排序
+            let leaderboard = Object.keys(userScores).map(name => {
+                return { name, points: userScores[name].points, wins: userScores[name].wins };
+            }).sort((a, b) => b.points - a.points);
+
+            // 渲染排行榜
+            let lbContainer = document.getElementById('leaderboardList');
+            lbContainer.innerHTML = '';
+            leaderboard.slice(0, 5 маслом || 5).forEach((user, idx) => {
+                let tInfo = getTitleByBalance(user.points);
+                let rankColor = idx === 0 ? 'text-yellow-400 font-bold border-yellow-500/30 bg-yellow-500/10' : (idx === 1 ? 'text-gray-300 border-gray-700' : (idx === 2 ? 'text-amber-600 border-amber-800/30' : 'text-gray-400 border-gray-800'));
+                
+                lbContainer.innerHTML += `
+                    <div class="flex items-center justify-between bg-gray-950/60 border ${rankColor} p-3 rounded-xl text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 text-center font-bold text-sm">#${idx + 1}</span>
+                            <div>
+                                <div class="font-bold text-gray-200">${user.name}</div>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded ${tInfo.color}">${tInfo.name}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-yellow-400 font-bold">${user.points} 點</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 渲染預測列表
             const container = document.getElementById('marketList');
             container.innerHTML = '';
 
@@ -197,7 +274,7 @@
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl text-center text-gray-500">此分類目前沒有預測題目，快來發起一個吧！</div>`;
+                container.innerHTML = `<div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl text-center text-gray-500 text-sm">此分類目前沒有預測題目，快來發起一個吧！</div>`;
                 return;
             }
 
@@ -215,7 +292,7 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-xs bg-gray-800 text-yellow-400 px-2 py-0.5 rounded font-bold">#${globalRank + 1}</span>
                             <span class="text-xs bg-blue-900/50 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded">${market.category}</span>
-                            <h3 class="text-lg font-bold">${market.title}</h3>
+                            <h3 class="text-base font-bold">${market.title}</h3>
                         </div>
                         <span class="text-xs px-2.5 py-1 rounded-full ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700 text-gray-300'}">
                             ${market.status === 'open' ? '進行中' : '已結算'}
@@ -223,10 +300,7 @@
                     </div>
                     <div class="text-xs text-gray-400 mb-4 space-y-1">
                         <div>發起人：<span class="text-blue-400">${market.creator}</span> | 截止時間：<span class="text-red-400 font-semibold">⏰ ${formattedTime}</span></div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span>總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></span>
-                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">🔥 熱門前20名 (手續費優惠 1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費 5%)</span>'}
-                        </div>
+                        <div>總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></div>
                     </div>
                 `;
 
@@ -239,9 +313,9 @@
 
                     contentHTML += `
                         <div>
-                            <div class="flex justify-between text-sm mb-1">
+                            <div class="flex justify-between text-xs mb-1">
                                 <span class="font-semibold text-gray-200">${opt} (${percent}%) - 池: ${pool}</span>
-                                <span class="text-xs text-gray-400">你已下注: ${userOptionBet} 點</span>
+                                <span class="text-gray-400">你已下注: ${userOptionBet} 點</span>
                             </div>
                             <div class="w-full bg-gray-800 h-2.5 rounded-full overflow-hidden mb-2">
                                 <div class="${colorClass} h-full transition-all duration-500" style="width: ${percent}%"></div>
@@ -250,7 +324,7 @@
 
                     if (market.status === 'open') {
                         contentHTML += `
-                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition">
+                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-xs font-semibold transition">
                                 押「${opt}」 (+100點)
                             </button>
                         `;
@@ -262,11 +336,8 @@
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800 flex flex-wrap justify-between items-center gap-2">
                         <div class="flex items-center gap-2">
-                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1">
+                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700">
                                 👍 有趣 (${market.likes})
-                            </button>
-                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700">
-                                檢舉
                             </button>
                         </div>
                 `;
@@ -283,6 +354,7 @@
                 }
                 contentHTML += `</div>`;
 
+                // 討論區
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/60 bg-gray-950/40 p-4 rounded-xl">
                         <h4 class="text-xs font-semibold text-gray-400 mb-3">💬 意見交流區 (${market.comments.length})</h4>
@@ -293,10 +365,14 @@
                     contentHTML += `<p class="text-xs text-gray-500 italic">目前還沒有人留言，快來發表你的看法吧！</p>`;
                 } else {
                     market.comments.forEach(c => {
+                        let cTitle = getTitleByBalance(c.points || 1000);
                         contentHTML += `
-                            <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs">
-                                <span class="font-bold text-blue-400 mr-2">${c.user}:</span>
-                                <span class="text-gray-300">${c.text}</span>
+                            <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs flex justify-between items-center">
+                                <div>
+                                    <span class="font-bold text-blue-400 mr-2">${c.user}</span>
+                                    <span class="text-[10px] px-1.5 py-0.2 rounded border ${cTitle.color} mr-2">${cTitle.name}</span>
+                                    <span class="text-gray-300">${c.text}</span>
+                                </div>
                             </div>
                         `;
                     });
@@ -325,20 +401,12 @@
             let title = document.getElementById('newMarketTitle').value.trim();
             let deadline = document.getElementById('marketDeadline').value;
             let optionsStr = document.getElementById('marketOptions').value.trim();
-            let wantStake = document.getElementById('stakeBoost').checked;
 
             if (!title) { alert('請輸入預測題目！'); return; }
             if (!deadline) { alert('請設定預測的截止時間！'); return; }
 
             let options = optionsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
             if (options.length < 2) { alert('至少需要設定 2 個選項！'); return; }
-
-            let initialPools = new Array(options.length).fill(100);
-            if (wantStake) {
-                if (balance < 100) { alert('積分不足以支付 100 點推廣押金！'); return; }
-                balance -= 100;
-                initialPools[0] += 100;
-            }
 
             let newMarketObj = {
                 id: Date.now(),
@@ -347,7 +415,7 @@
                 title: title,
                 deadline: deadline,
                 options: options,
-                pools: initialPools,
+                pools: new Array(options.length).fill(100),
                 status: 'open',
                 resultIndex: null,
                 likes: 1,
@@ -359,13 +427,11 @@
                 if (window.db) {
                     await window.addDoc(window.collection(window.db, "markets"), newMarketObj);
                 }
-                alert('發起成功！題目已順利推送到雲端大廳。');
+                alert('發起成功！');
                 document.getElementById('newMarketTitle').value = '';
-                document.getElementById('stakeBoost').checked = false;
                 loadMarketsFromFirebase();
             } catch (e) {
                 console.error("發起失敗: ", e);
-                alert('發起失敗，請檢查網路連線。');
             }
         }
         window.createMarket = createMarket;
@@ -379,7 +445,7 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
-            market.comments.push({ user: creator, text: text });
+            market.comments.push({ user: creator, text: text, points: balance });
 
             try {
                 if (window.db && market.docId) {
@@ -407,35 +473,13 @@
                     });
                 }
                 updateUI();
-            } catch (e) {
-                console.error("按讚失敗: ", e);
-            }
+            } catch (e) {}
         }
         window.likeMarket = likeMarket;
 
-        async function reportMarket(identifier) {
-            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
-            if (!market) return;
-            market.reports++;
-            
-            try {
-                if (market.reports >= 3) {
-                    markets = markets.filter(m => m.docId !== identifier && m.id != identifier);
-                    alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
-                    // 如果有 docId 可以選擇在firestore刪除，此處直接重新整理UI
-                } else {
-                    alert('感謝回報，管理員會盡快審查此題目。');
-                }
-                updateUI();
-            } catch (e) {
-                console.error("檢舉失敗: ", e);
-            }
-        }
-        window.reportMarket = reportMarket;
-
         async function bet(identifier, optionIdx) {
             let cost = 100;
-            if (balance < cost) { alert('積分不足！點右上角「補領積分」加值。'); return; }
+            if (balance < cost) { alert('積分不足！請點擊右上角領取救濟金。'); return; }
 
             balance -= cost;
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
@@ -454,9 +498,7 @@
                     });
                 }
                 updateUI();
-            } catch (e) {
-                console.error("下注失敗: ", e);
-            }
+            } catch (e) {}
         }
         window.bet = bet;
 
@@ -466,29 +508,17 @@
             market.status = 'closed';
             market.resultIndex = winningIdx;
 
-            let sortedMarkets = [...markets].sort((a, b) => {
-                let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
-                let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
-                return totalB - totalA;
-            });
-            let rank = sortedMarkets.findIndex(m => m.id === market.id);
-
             let totalPool = market.pools.reduce((a, b) => a + b, 0);
-            let feeRate = rank < 20 ? 0.01 : 0.05;
-            let platformFee = Math.round(totalPool * feeRate);
-            let remainingPool = totalPool - platformFee;
-
             let userBetObj = userBets[market.id] || {};
             let userWinningBet = userBetObj[winningIdx] || 0;
             let winningPool = market.pools[winningIdx];
 
-            let payout = 0;
             if (userWinningBet > 0 && winningPool > 0) {
-                payout = Math.round((userWinningBet / winningPool) * remainingPool);
+                let payout = Math.round((userWinningBet / winningPool) * totalPool);
                 balance += payout;
-                alert(`結算完成！此題熱度排名第 ${rank + 1}（手續費 ${feeRate * 100}%）。你猜中了，贏得 ${payout} 點積分！`);
+                alert(`結算完成！你猜中了，贏得 ${payout} 點積分！榮譽榜排名將自動上升！`);
             } else {
-                alert(`結算完成！此題熱度排名第 ${rank + 1}。可惜你這局沒有押中。`);
+                alert(`結算完成！可惜你這局沒有押中。`);
             }
 
             try {
@@ -499,14 +529,13 @@
                     });
                 }
                 updateUI();
-            } catch (e) {
-                console.error("結算失敗: ", e);
-            }
+            } catch (e) {}
         }
         window.resolveMarket = resolveMarket;
 
         function resetBalance() {
-            balance += 1000;
+            balance += 500;
+            alert('成功領取 500 點每日救濟金！');
             updateUI();
         }
         window.resetBalance = resetBalance;
