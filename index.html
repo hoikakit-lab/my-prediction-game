@@ -348,25 +348,20 @@
 
             let bjNowTime = Date.UTC(year, month - 1, day, hour, minute, second);
 
-            // 決定當前季度與結算點（每個季度最後一天的 23:59:59）
             let seasonName = "";
             let endTimestamp = 0;
 
             if (month >= 1 && month <= 3) {
                 seasonName = `${year} Q1 (1-3月)`;
-                // 3月31日 23:59:59
                 endTimestamp = Date.UTC(year, 2, 31, 23, 59, 59);
             } else if (month >= 4 && month <= 6) {
                 seasonName = `${year} Q2 (4-6月)`;
-                // 6月30日 23:59:59
                 endTimestamp = Date.UTC(year, 5, 30, 23, 59, 59);
             } else if (month >= 7 && month <= 9) {
                 seasonName = `${year} Q3 (7-9月)`;
-                // 9月30日 23:59:59
                 endTimestamp = Date.UTC(year, 8, 30, 23, 59, 59);
             } else {
                 seasonName = `${year} Q4 (10-12月)`;
-                // 12月31日 23:59:59
                 endTimestamp = Date.UTC(year, 11, 31, 23, 59, 59);
             }
 
@@ -388,7 +383,7 @@
         }
 
         function updateCardCountdowns() {
-            let now = new Date().getTime();
+            let now = Date.now();
 
             document.querySelectorAll('.market-deadline-timer').forEach(el => {
                 let deadlineMs = parseInt(el.getAttribute('data-deadline'));
@@ -410,7 +405,7 @@
                 let closedAt = parseInt(el.getAttribute('data-closedat'));
                 if (!closedAt || isNaN(closedAt)) return;
                 
-                let expiryTime = closedAt + (3600 * 1000); // 結算後 1 小時
+                let expiryTime = closedAt + (3600 * 1000); // 結算後固定 1 小時清除
                 let diff = expiryTime - now;
 
                 if (diff <= 0) {
@@ -1052,7 +1047,8 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
             
-            let closedAt = Date.now();
+            // 確保每次結算都會精準寫入當下的真實時間戳，並透過 Firebase 雲端永久保存，重新整理也不會重置
+            let closedAt = market.closedAt || Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
                 let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
