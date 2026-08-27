@@ -166,12 +166,12 @@
                 <!-- 賽季資訊卡片 -->
                 <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-sm font-semibold text-purple-400">🌟 目前賽季：Season 1 (90天)</h3>
+                        <h3 id="seasonTitle" class="text-sm font-semibold text-purple-400">🌟 目前賽季：載入中...</h3>
                         <span class="text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded border border-purple-700/40">進行中</span>
                     </div>
                     <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將獲得榮譽勳章與傳說頭銜！</p>
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-[10px] text-gray-500 block mb-1">距離本賽季結算剩餘時間 (北京時間)</span>
+                        <span class="text-[10px] text-gray-500 block mb-1">距離本季結算剩餘時間 (北京時間)</span>
                         <span id="seasonCountdown" class="text-xs font-bold text-yellow-400 font-mono">計算中...</span>
                     </div>
                 </div>
@@ -317,10 +317,11 @@
             clockEl.innerText = `北京時間：${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
         }
 
-        // 嚴格校正北京時間的賽季倒數（完全以北京時間年月日時分秒做數學計算）
+        // 嚴格對齊現實季度（1-3月, 4-6月, 7-9月, 10-12月）的北京時間結算與倒數
         function updateSeasonCountdown() {
             let countdownEl = document.getElementById('seasonCountdown');
-            if (!countdownEl) return;
+            let titleEl = document.getElementById('seasonTitle');
+            if (!countdownEl || !titleEl) return;
 
             let now = new Date();
             let bjFormatter = new Intl.DateTimeFormat('en-US', {
@@ -338,28 +339,43 @@
             let p = {};
             parts.forEach(item => p[item.type] = item.value);
 
-            // 透過數值拼湊確保精準的北京當前時間戳（+08:00）
-            let bjNowTime = Date.UTC(
-                parseInt(p.year), 
-                parseInt(p.month) - 1, 
-                parseInt(p.day), 
-                parseInt(p.hour), 
-                parseInt(p.minute), 
-                parseInt(p.second)
-            );
+            let year = parseInt(p.year);
+            let month = parseInt(p.month); // 1 ~ 12
+            let day = parseInt(p.day);
+            let hour = parseInt(p.hour);
+            let minute = parseInt(p.minute);
+            let second = parseInt(p.second);
 
-            // 從 localStorage 取得或初始化北京時間的賽季結束日（預設 90 天）
-            let seasonEndStorage = localStorage.getItem('beijing_season_end_timestamp');
-            if (!seasonEndStorage) {
-                let futureTime = bjNowTime + (90 * 24 * 60 * 60 * 1000);
-                localStorage.setItem('beijing_season_end_timestamp', futureTime);
-                seasonEndStorage = futureTime;
+            let bjNowTime = Date.UTC(year, month - 1, day, hour, minute, second);
+
+            // 決定當前季度與結算點（每個季度最後一天的 23:59:59）
+            let seasonName = "";
+            let endTimestamp = 0;
+
+            if (month >= 1 && month <= 3) {
+                seasonName = `${year} Q1 (1-3月)`;
+                // 3月31日 23:59:59
+                endTimestamp = Date.UTC(year, 2, 31, 23, 59, 59);
+            } else if (month >= 4 && month <= 6) {
+                seasonName = `${year} Q2 (4-6月)`;
+                // 6月30日 23:59:59
+                endTimestamp = Date.UTC(year, 5, 30, 23, 59, 59);
+            } else if (month >= 7 && month <= 9) {
+                seasonName = `${year} Q3 (7-9月)`;
+                // 9月30日 23:59:59
+                endTimestamp = Date.UTC(year, 8, 30, 23, 59, 59);
+            } else {
+                seasonName = `${year} Q4 (10-12月)`;
+                // 12月31日 23:59:59
+                endTimestamp = Date.UTC(year, 11, 31, 23, 59, 59);
             }
-            
-            let distance = parseInt(seasonEndStorage) - bjNowTime;
+
+            titleEl.innerText = `🌟 目前賽季：${seasonName}`;
+
+            let distance = endTimestamp - bjNowTime;
 
             if (distance < 0) {
-                countdownEl.innerText = "本賽季已結算，新賽季即將展開！";
+                countdownEl.innerText = "本季已結算，新季度即將展開！";
                 return;
             }
 
