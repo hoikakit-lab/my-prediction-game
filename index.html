@@ -46,7 +46,6 @@
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (賽季即時戰神版)</h1>
                 <div class="flex flex-wrap items-center gap-3 mt-1">
                     <p class="text-gray-400 text-sm">🔥 即時同步對賭、個人戰績追蹤、爭奪賽季最高榮譽。</p>
-                    <!-- 需求1：正規北京時間，每分每秒跳動 -->
                     <span id="beijingClock" class="text-xs bg-gray-900 border border-gray-800 text-cyan-400 px-3 py-1 rounded-lg font-mono">
                         北京時間：載入中...
                     </span>
@@ -295,7 +294,6 @@
             updateCardCountdowns();
         }, 1000);
 
-        // 需求1：即時北京時間每秒跳動
         function updateBeijingClock() {
             let clockEl = document.getElementById('beijingClock');
             if (!clockEl) return;
@@ -319,7 +317,6 @@
             clockEl.innerText = `北京時間：${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
         }
 
-        // 需求2：賽季為一季（以90天計算）且每分每秒動態跳動
         function updateSeasonCountdown() {
             let countdownEl = document.getElementById('seasonCountdown');
             if (!countdownEl) return;
@@ -346,11 +343,9 @@
             countdownEl.innerText = `${days} 天 ${hours} 小時 ${minutes} 分 ${seconds} 秒`;
         }
 
-        // 需求3與4：每秒刷新卡片內的截止時間倒數，以及歷史紀錄的 1 小時動態清除倒數
         function updateCardCountdowns() {
             let now = new Date().getTime();
 
-            // 更新進行中題目的截止倒數
             document.querySelectorAll('.market-deadline-timer').forEach(el => {
                 let deadlineMs = parseInt(el.getAttribute('data-deadline'));
                 let diff = deadlineMs - now;
@@ -367,21 +362,21 @@
                 }
             });
 
-            // 需求4：歷史紀錄 1 小時自動清除倒數 (每分每秒正確動態跳動)
+            // 以雲端同步的 closedAt 為基準計算 1 小時倒數，重新整理也不會重置
             document.querySelectorAll('.history-expiry-timer').forEach(el => {
                 let closedAt = parseInt(el.getAttribute('data-closedat'));
+                if (!closedAt || isNaN(closedAt)) return;
+                
                 let expiryTime = closedAt + (3600 * 1000); // 結算後 1 小時
                 let diff = expiryTime - now;
 
                 if (diff <= 0) {
                     el.innerText = "⏳ 歷史紀錄即將清除...";
-                    updateUI();
                 } else {
                     let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     let s = Math.floor((diff % (1000 * 60)) / 1000);
                     
-                    // 格式化為 時:分:秒 確保補零美觀
                     let hStr = h < 10 ? '0' + h : h;
                     let mStr = m < 10 ? '0' + m : m;
                     let sStr = s < 10 ? '0' + s : s;
@@ -567,6 +562,7 @@
 
                 snapshot.forEach((docSnap) => {
                     let data = docSnap.data();
+                    // 若已結算且超過 1 小時，自動從雲端刪除
                     if (data.status === 'closed' && data.closedAt) {
                         if (now - data.closedAt > 3600000) {
                             deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
@@ -792,10 +788,11 @@
                 } else {
                     let closedTimeStr = market.closedAt ? new Date(market.closedAt).toLocaleString('zh-CN', { hour12: false }) : '剛剛';
                     let winnerText = market.options[market.resultIndex];
+                    let currentClosedAt = market.closedAt || Date.now();
                     contentHTML += `
                         <div class="text-xs space-y-1 text-right">
                             <div class="text-yellow-400 font-semibold">🏁 結算勝出：${winnerText} (於 ${closedTimeStr})</div>
-                            <div class="text-red-400 font-mono history-expiry-timer" data-closedat="${market.closedAt || Date.now()}">⏳ 離自動清除剩餘：計算中...</div>
+                            <div class="text-red-400 font-mono history-expiry-timer" data-closedat="${currentClosedAt}">⏳ 離自動清除剩餘：計算中...</div>
                         </div>
                     `;
                 }
@@ -1014,6 +1011,7 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
             
+            // 記錄當下的真實毫秒時間戳記（雲端同步，重新整理也不會重置）
             let closedAt = Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
@@ -1054,7 +1052,7 @@
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         status: 'closed',
                         resultIndex: winningIdx,
-                        closedAt: closedAt
+                        closedAt: closedAt // 同步寫入雲端
                     });
                 }
                 currentFilter = '歷史紀錄';
