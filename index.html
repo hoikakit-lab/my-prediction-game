@@ -68,11 +68,6 @@
         ::-webkit-scrollbar-track { background: #030712; }
         ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #374151; }
-
-        /* 轉盤旋轉動畫 */
-        .wheel-spin {
-            transition: transform 4s cubic-bezier(0.15, 0.9, 0.15, 1);
-        }
     </style>
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
@@ -132,6 +127,11 @@
             
             <!-- 帳號登入與資產區塊 -->
             <div class="flex items-center gap-3 flex-wrap justify-center">
+                <!-- 新增：聯絡方式按鈕 -->
+                <button onclick="openContactModal()" class="glass-card hover:bg-gray-800/80 text-pink-400 border-pink-500/40 text-xs px-4 py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-md active:scale-95">
+                    📩 聯絡方式
+                </button>
+
                 <button onclick="openGuideModal()" class="glass-card hover:bg-gray-800/80 text-cyan-400 border-cyan-500/40 text-xs px-4 py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-md active:scale-95">
                     📖 玩法介紹
                 </button>
@@ -251,7 +251,7 @@
 
             <!-- 右側側邊欄 -->
             <div class="lg:col-span-1 space-y-6">
-                <!-- 🎰 新增：每日幸運大轉盤 -->
+                <!-- 🎰 優化版：每日幸運大轉盤 (採用 HTML5 Canvas 平滑渲染與物理流暢動畫) -->
                 <div class="glass-card p-5 rounded-3xl shadow-xl relative overflow-hidden">
                     <div class="flex justify-between items-center mb-3 border-b border-gray-800/80 pb-2.5">
                         <h3 class="text-base font-bold text-amber-400 flex items-center gap-1.5">
@@ -260,22 +260,11 @@
                         <span id="wheelStatusBadge" class="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-semibold">每日1次</span>
                     </div>
 
-                    <div class="relative w-44 h-44 mx-auto my-3 flex items-center justify-center">
-                        <!-- 轉盤指針 -->
-                        <div class="absolute -top-1.5 z-20 text-red-500 text-xl font-bold drop-shadow">▼</div>
-                        <!-- 輪盤圓盤 -->
-                        <div id="wheelDisc" class="w-full h-full rounded-full border-4 border-amber-500/50 bg-gray-900 flex items-center justify-center relative overflow-hidden shadow-2xl transition-all">
-                            <!-- 輪盤圖案/區域標示 -->
-                            <div class="absolute inset-0 rounded-full flex items-center justify-center text-xs font-black text-amber-300 select-none">
-                                <div class="absolute top-2">500點</div>
-                                <div class="absolute bottom-2">50點</div>
-                                <div class="absolute left-2">100點</div>
-                                <div class="absolute right-2">200點</div>
-                            </div>
-                            <div class="w-10 h-10 rounded-full bg-gray-950 border-2 border-amber-500/70 z-10 flex items-center justify-center font-bold text-[10px] text-amber-400">
-                                LUCK
-                            </div>
-                        </div>
+                    <div class="relative w-48 h-48 mx-auto my-3 flex items-center justify-center">
+                        <!-- 霓虹立體指針 -->
+                        <div class="absolute -top-1 z-30 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[20px] border-t-rose-500 filter drop-shadow-[0_2px_6px_rgba(244,63,94,0.8)]"></div>
+                        <!-- Canvas 繪製平滑高品質輪盤 -->
+                        <canvas id="wheelCanvas" width="200" height="200" class="w-full h-full rounded-full shadow-2xl drop-shadow-md"></canvas>
                     </div>
 
                     <button onclick="spinWheel()" id="spinBtn" class="w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95">
@@ -329,6 +318,29 @@
         </div>
     </div>
 
+    <!-- 新增：聯絡方式 Modal 彈窗 -->
+    <div id="contactModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-card w-full max-w-sm p-6 rounded-3xl shadow-2xl relative text-center border border-gray-800">
+            <button onclick="closeContactModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-gray-800/60 flex items-center justify-center transition">✕</button>
+            <h3 class="text-xl font-bold text-pink-400 mb-4 flex items-center justify-center gap-2">
+                ✉️ 聯絡我們
+            </h3>
+            <div class="bg-gray-950/90 p-5 rounded-2xl border border-gray-800 text-left space-y-3 mb-5 shadow-inner">
+                <div>
+                    <span class="text-[10px] text-gray-400 block font-medium">名稱 / Name</span>
+                    <span class="text-sm font-bold text-gray-100">一個完全不懂IT的人</span>
+                </div>
+                <div class="border-t border-gray-800/80 pt-2.5">
+                    <span class="text-[10px] text-gray-400 block font-medium">電子郵件 / Email</span>
+                    <span class="text-sm font-bold text-cyan-400 font-mono selection:bg-cyan-500 selection:text-black">hoikakit@gmail.com</span>
+                </div>
+            </div>
+            <button onclick="closeContactModal()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md active:scale-[0.99]">
+                確定
+            </button>
+        </div>
+    </div>
+
     <!-- 每日簽到 Modal 彈窗 -->
     <div id="checkinModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="glass-card w-full max-w-sm p-6 rounded-3xl shadow-2xl relative text-center border border-gray-800">
@@ -364,7 +376,7 @@
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
                     <h4 class="font-bold text-purple-400 text-sm mb-1">2. 💰 參與下注與下注紀錄</h4>
-                    <p class="text-gray-400">在有興趣的預測題目中點擊「指定選項」參與對賭。猜中者依比例瓜分獎金，並可在「個人戰績」隨時檢視自己參與過的所有歷史下注與明細。</p>
+                    <p class="text-gray-400">在有興趣的預測題目中，可使用鍵盤自訂下注金額（上限 200 點，須為 10 的倍數），點擊選項即可完成對賭。猜中者依比例瓜分彩池獎金！</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
@@ -487,7 +499,7 @@
         let myBetLogs = []; 
         let lastCheckinDate = "";
         let checkinStreak = 0;
-        let lastWheelDate = ""; // 新增：輪盤最後轉動日期
+        let lastWheelDate = ""; 
         
         let dailyPostDate = "";
         let dailyPostCount = 0;
@@ -499,9 +511,17 @@
         let unsubUsers = null;
         let allUsersData = {};
         let hallOfFameData = [];
-        let wheelDegree = 0;
-        let isSpinning = false;
         
+        // 轉盤動畫相關變數
+        let wheelAngle = 0;
+        let isSpinning = false;
+        const wheelSectors = [
+            { label: '500點', value: 500, color: '#f59e0b' },
+            { label: '50點',  value: 50,  color: '#3b82f6' },
+            { label: '100點', value: 100, color: '#10b981' },
+            { label: '200點', value: 200, color: '#8b5cf6' }
+        ];
+
         const optionThemeColors = [
             { bg: 'bg-emerald-500', text: 'text-emerald-400', border: 'border-emerald-500/30' },
             { bg: 'bg-rose-500', text: 'text-rose-400', border: 'border-rose-500/30' },
@@ -907,6 +927,7 @@
             updateAuthUI();
             startRealtimeListeners();
             loadHallOfFameFromCloud();
+            initWheelCanvas();
             updateWheelUI();
         }
         window.initApp = initApp;
@@ -1197,7 +1218,7 @@
                 let globalRank = sortedMarkets.findIndex(m => m.id === market.id);
                 let isTop20 = globalRank < 20;
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
-                let isHotFire = totalPool >= 1000; // 總彩池大於 1000 顯示火苗
+                let isHotFire = totalPool >= 1000;
                 
                 let deadlineMs = market.deadline ? new Date(market.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
                 let formattedTime = market.deadline || '無期限';
@@ -1252,6 +1273,7 @@
                     let percent = totalPool === 0 ? Math.round(100 / market.options.length) : Math.round((pool / totalPool) * 100);
                     let theme = optionThemeColors[idx % optionThemeColors.length];
                     let userOptionBet = (userBets[market.id] && userBets[market.id][idx]) || 0;
+                    let marketKey = market.docId || market.id;
 
                     contentHTML += `
                         <div class="bg-gray-950/70 p-3.5 rounded-2xl border ${theme.border}">
@@ -1266,9 +1288,13 @@
 
                     if (market.status === 'open') {
                         contentHTML += `
-                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700/80 text-gray-200 py-2.5 rounded-xl text-xs font-bold transition active:scale-95 shadow-sm">
-                                押「${opt}」 (+100點)
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="betAmount_${marketKey}_${idx}" min="10" max="200" step="10" value="10" placeholder="10-200" 
+                                    class="w-28 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-yellow-400 font-bold focus:outline-none focus:border-blue-500 text-center">
+                                <button onclick="bet('${marketKey}', ${idx})" class="flex-1 bg-gray-900 hover:bg-gray-800 border border-gray-700/80 text-gray-200 py-2 rounded-xl text-xs font-bold transition active:scale-95 shadow-sm flex items-center justify-center gap-1">
+                                    押「${opt}」
+                                </button>
+                            </div>
                         `;
                     }
                     contentHTML += `</div>`;
@@ -1345,7 +1371,72 @@
             });
         }
 
-        // ------------------ 幸運轉盤機制 ------------------
+        // ------------------ 🎰 繪製與流暢優化 Canvas 幸運輪盤 ------------------
+        function initWheelCanvas() {
+            let canvas = document.getElementById('wheelCanvas');
+            if (!canvas) return;
+            drawWheel(wheelAngle);
+        }
+
+        function drawWheel(angle) {
+            let canvas = document.getElementById('wheelCanvas');
+            if (!canvas) return;
+            let ctx = canvas.getContext('2d');
+            let numSectors = wheelSectors.length;
+            let arc = (2 * Math.PI) / numSectors;
+            let radius = canvas.width / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 繪製扇形
+            for (let i = 0; i < numSectors; i++) {
+                let sectorAngle = angle + i * arc;
+                ctx.beginPath();
+                ctx.fillStyle = wheelSectors[i].color;
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius - 4, sectorAngle, sectorAngle + arc);
+                ctx.lineTo(radius, radius);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 繪製文字
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(sectorAngle + arc / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 13px Inter, sans-serif";
+                ctx.shadowColor = "rgba(0,0,0,0.6)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(wheelSectors[i].label, radius - 18, 5);
+                ctx.restore();
+            }
+
+            // 外框金色裝飾圈
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius - 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // 中心金屬按鈕
+            ctx.beginPath();
+            ctx.arc(radius, radius, 22, 0, 2 * Math.PI);
+            ctx.fillStyle = '#030712';
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 9px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('LUCK', radius, radius + 3);
+        }
+
         function updateWheelUI() {
             let btn = document.getElementById('spinBtn');
             let badge = document.getElementById('wheelStatusBadge');
@@ -1379,28 +1470,47 @@
             let btn = document.getElementById('spinBtn');
             btn.disabled = true;
 
-            let prizes = [50, 100, 200, 500];
-            let randomIndex = Math.floor(Math.random() * prizes.length);
-            let prizePoint = prizes[randomIndex];
+            let numSectors = wheelSectors.length;
+            let prizes = [500, 50, 100, 200];
+            let targetIdx = Math.floor(Math.random() * prizes.length);
+            let prizePoint = prizes[targetIdx];
 
-            // 計算旋轉角度 (轉 5 圈加上獎品偏移角)
-            let baseRounds = 360 * 5;
-            let sectionAngle = 90 * randomIndex;
-            wheelDegree += baseRounds + sectionAngle + (Math.random() * 40 - 20);
+            // 物理 Ease-out 旋轉計算
+            let sectorArc = (2 * Math.PI) / numSectors;
+            let targetSectorAngle = (3 * Math.PI / 2) - (targetIdx * sectorArc) - (sectorArc / 2);
+            let totalRotation = (Math.PI * 2 * 6) + targetSectorAngle;
 
-            let disc = document.getElementById('wheelDisc');
-            disc.style.transform = `rotate(${wheelDegree}deg)`;
-            disc.classList.add('wheel-spin');
+            let startAngle = wheelAngle % (Math.PI * 2);
+            let angleDiff = totalRotation - startAngle;
+            let startTime = null;
+            let duration = 4000; // 4 秒順暢旋轉
 
-            setTimeout(async () => {
-                isSpinning = false;
-                balance += prizePoint;
-                lastWheelDate = today;
+            function animateWheel(timestamp) {
+                if (!startTime) startTime = timestamp;
+                let elapsed = timestamp - startTime;
+                let progress = Math.min(elapsed / duration, 1);
+                
+                // Ease-Out Cubic 方程式 (開始快，結尾慢)
+                let easeOutProgress = 1 - Math.pow(1 - progress, 3);
+                
+                wheelAngle = startAngle + (angleDiff * easeOutProgress);
+                drawWheel(wheelAngle);
 
-                await updateCloudUserData();
-                showToast(`🎉 恭喜幸運獲得 ${prizePoint} 點數！`, 'success');
-                updateWheelUI();
-            }, 4000);
+                if (progress < 1) {
+                    requestAnimationFrame(animateWheel);
+                } else {
+                    isSpinning = false;
+                    balance += prizePoint;
+                    lastWheelDate = today;
+
+                    updateCloudUserData().then(() => {
+                        showToast(`🎉 恭喜幸運獲得 ${prizePoint} 點數！`, 'success');
+                        updateWheelUI();
+                    });
+                }
+            }
+
+            requestAnimationFrame(animateWheel);
         }
         window.spinWheel = spinWheel;
 
@@ -1548,15 +1658,35 @@
         }
         window.reportMarket = reportMarket;
 
+        // ------------------ 修正：即時扣分與自訂鍵盤金額下注 ------------------
         async function bet(identifier, optionIdx) {
             if (!currentUser) {
                 alert('請先登入帳號才能下注！');
                 return;
             }
 
-            let cost = 100;
-            if (balance < cost) { alert('積分不足！'); return; }
+            let inputEl = document.getElementById(`betAmount_${identifier}_${optionIdx}`);
+            let cost = parseInt(inputEl ? inputEl.value : 10);
 
+            // 限制條件與驗證 (上限200, 10為單位)
+            if (isNaN(cost) || cost < 10) {
+                alert('下注金額最低為 10 點！');
+                return;
+            }
+            if (cost > 200) {
+                alert('單次下注上限為 200 點！');
+                return;
+            }
+            if (cost % 10 !== 0) {
+                alert('下注金額必須為 10 的倍數（如：10, 20, 50, 200）！');
+                return;
+            }
+            if (balance < cost) {
+                alert(`您的剩餘積分不足 (${balance} 點)，無法下注 ${cost} 點！`);
+                return;
+            }
+
+            // 即時同步扣除當前帳號分數
             balance -= cost;
 
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
@@ -1577,6 +1707,7 @@
                 status: '進行中'
             });
 
+            // 即時寫入 Firebase 雲端資料庫，確保多帳號同步
             await updateCloudUserData();
 
             try {
@@ -1585,7 +1716,7 @@
                         pools: updatedPools
                     });
                 }
-                showToast(`成功下注「${market.options[optionIdx]}」100點！`, 'success');
+                showToast(`成功下注「${market.options[optionIdx]}」${cost} 點！`, 'success');
             } catch (e) {
                 console.error("下注失敗: ", e);
             }
@@ -1625,7 +1756,8 @@
                     showToast(`結算完成！你猜中了，贏得 ${payout} 點！`, 'success');
                 } else {
                     losses += 1;
-                    if (logIdx !== -1) myBetLogs[logIdx].status = `未中 (-100點)`;
+                    let totalLost = Object.values(userBetObj).reduce((a,b)=>a+b, 0);
+                    if (logIdx !== -1) myBetLogs[logIdx].status = `未中 (-${totalLost}點)`;
                     showToast(`結算完成！可惜這次沒猜中。`, 'warning');
                 }
                 await updateCloudUserData();
@@ -1648,6 +1780,19 @@
             }
         }
         window.resolveMarket = resolveMarket;
+
+        // ------------------ 彈窗 Modal 控制邏輯 ------------------
+        function openContactModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactModal').classList.add('flex');
+        }
+        window.openContactModal = openContactModal;
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.remove('flex');
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+        window.closeContactModal = closeContactModal;
 
         async function openCheckinModal() {
             if (!currentUser) {
@@ -1755,7 +1900,7 @@
         window.openGuideModal = openGuideModal;
 
         function closeGuideModal() {
-            document.getElementById('guideModal').classList.remove('flex');
+            document.getElementById('guideModal').classList.remove('hidden');
             document.getElementById('guideModal').classList.add('hidden');
         }
         window.closeGuideModal = closeGuideModal;
