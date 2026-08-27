@@ -53,7 +53,7 @@
                 </div>
             </div>
             
-            <!-- 帳號登入與資產區塊 (含玩法介紹按鈕在左方) -->
+            <!-- 帳號登入與資產區塊 -->
             <div class="flex items-center gap-3 flex-wrap">
                 <button onclick="openGuideModal()" class="bg-gray-900 hover:bg-gray-800 text-cyan-400 border border-cyan-500/40 text-xs px-3.5 py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-lg">
                     📖 玩法介紹
@@ -93,7 +93,7 @@
         <!-- 主體網格佈局 -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <!-- 左側主要內容區 (佔 2 欄) -->
+            <!-- 左側主要內容區 -->
             <div class="lg:col-span-2 space-y-8">
                 <!-- 建立新題目區塊 -->
                 <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-lg">
@@ -162,9 +162,9 @@
                 </section>
             </div>
 
-            <!-- 右側側邊欄：賽季資訊與排行榜 -->
+            <!-- 右側側邊欄 -->
             <div class="lg:col-span-1 space-y-6">
-                <!-- 賽季資訊卡片 (需求2：賽季為一季且每分每秒動態跳動) -->
+                <!-- 賽季資訊卡片 -->
                 <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="text-sm font-semibold text-purple-400">🌟 目前賽季：Season 1 (90天)</h3>
@@ -300,7 +300,6 @@
             let clockEl = document.getElementById('beijingClock');
             if (!clockEl) return;
             
-            // 透過 Intl API 取得準確的北京時間 (Asia/Shanghai)
             let now = new Date();
             let options = { 
                 timeZone: 'Asia/Shanghai', 
@@ -325,9 +324,7 @@
             let countdownEl = document.getElementById('seasonCountdown');
             if (!countdownEl) return;
 
-            // 以當前年度季度或固定 90 天賽季計時為基準
             let now = new Date().getTime();
-            // 假設這一季結束時間設定為當前時間往後推 89天 23小時 59分 (或模擬固定賽季結算點)
             let seasonEndStorage = localStorage.getItem('season_end_timestamp');
             if (!seasonEndStorage) {
                 let futureTime = now + (90 * 24 * 60 * 60 * 1000);
@@ -349,7 +346,7 @@
             countdownEl.innerText = `${days} 天 ${hours} 小時 ${minutes} 分 ${seconds} 秒`;
         }
 
-        // 需求3與4：每秒刷新卡片內的「截止時間倒數」與歷史紀錄的「1小時清除倒數」
+        // 需求3與4：每秒刷新卡片內的截止時間倒數，以及歷史紀錄的 1 小時動態清除倒數
         function updateCardCountdowns() {
             let now = new Date().getTime();
 
@@ -370,20 +367,26 @@
                 }
             });
 
-            // 需求4：更新歷史紀錄的「1小時自動清除倒數」
+            // 需求4：歷史紀錄 1 小時自動清除倒數 (每分每秒正確動態跳動)
             document.querySelectorAll('.history-expiry-timer').forEach(el => {
                 let closedAt = parseInt(el.getAttribute('data-closedat'));
-                let expiryTime = closedAt + (3600 * 1000); // 1小時後
+                let expiryTime = closedAt + (3600 * 1000); // 結算後 1 小時
                 let diff = expiryTime - now;
 
                 if (diff <= 0) {
                     el.innerText = "⏳ 歷史紀錄即將清除...";
-                    // 觸發重新渲染以自動清除
                     updateUI();
                 } else {
+                    let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     let s = Math.floor((diff % (1000 * 60)) / 1000);
-                    el.innerText = `⏳ 離自動清除剩餘：00分 ${m < 10 ? '0' + m : m}秒`;
+                    
+                    // 格式化為 時:分:秒 確保補零美觀
+                    let hStr = h < 10 ? '0' + h : h;
+                    let mStr = m < 10 ? '0' + m : m;
+                    let sStr = s < 10 ? '0' + s : s;
+                    
+                    el.innerText = `⏳ 離自動清除剩餘：${hStr}時 ${mStr}分 ${sStr}秒`;
                 }
             });
         }
@@ -732,7 +735,6 @@
                             <span>| 截止時間點：<span class="text-gray-200">${formattedTime}</span></span>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <!-- 需求3：發表問題有設立時間顯示，並且每分每秒動態跳動 -->
                             <span class="text-red-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
                             <span>| 總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></span>
                             ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">🔥 熱門前20名 (手續費 1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費 5%)</span>'}
@@ -788,7 +790,6 @@
                     });
                     contentHTML += `</div>`;
                 } else {
-                    // 需求4：歷史紀錄顯示結算時間與 1 小時動態清除倒數
                     let closedTimeStr = market.closedAt ? new Date(market.closedAt).toLocaleString('zh-CN', { hour12: false }) : '剛剛';
                     let winnerText = market.options[market.resultIndex];
                     contentHTML += `
