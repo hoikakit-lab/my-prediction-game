@@ -21,6 +21,15 @@
         }
     </script>
     <style>
+        /* 粒子背景 canvas 疊加 */
+        #bgCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+        }
+
         @keyframes goldShine {
             0% { filter: brightness(1); }
             50% { filter: brightness(1.35); text-shadow: 0 0 12px rgba(234, 179, 8, 0.9); }
@@ -59,6 +68,11 @@
         ::-webkit-scrollbar-track { background: #030712; }
         ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+        /* 轉盤旋轉動畫 */
+        .wheel-spin {
+            transition: transform 4s cubic-bezier(0.15, 0.9, 0.15, 1);
+        }
     </style>
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
@@ -93,20 +107,23 @@
         }
     </script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-8 relative selection:bg-blue-500 selection:text-white font-sans">
+<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-8 relative selection:bg-blue-500 selection:text-white font-sans overflow-x-hidden">
+
+    <!-- 動態背景 Canvas -->
+    <canvas id="bgCanvas"></canvas>
 
     <!-- 頂部動態通知吐司容器 -->
     <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-7xl mx-auto relative z-10">
         <!-- 頂部標題與資產 -->
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-6">
             <div class="text-center lg:text-left">
-                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
-                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">排行榜分頁升級版</span>
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm flex items-center justify-center lg:justify-start gap-2">
+                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">炫彩旗艦版✨</span>
                 </h1>
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
-                    <p class="text-gray-400 text-xs md:text-sm">🔥 即時對賭、智慧急迫排序、多維度排行榜分頁。</p>
+                    <p class="text-gray-400 text-xs md:text-sm">🔥 即時對賭、智慧急迫排序、幸運輪盤與多維度排行榜。</p>
                     <span id="beijingClock" class="text-xs bg-gray-900/90 border border-gray-800 text-cyan-400 px-3.5 py-1.5 rounded-xl font-mono shadow-inner">
                         北京時間：載入中...
                     </span>
@@ -234,6 +251,38 @@
 
             <!-- 右側側邊欄 -->
             <div class="lg:col-span-1 space-y-6">
+                <!-- 🎰 新增：每日幸運大轉盤 -->
+                <div class="glass-card p-5 rounded-3xl shadow-xl relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-3 border-b border-gray-800/80 pb-2.5">
+                        <h3 class="text-base font-bold text-amber-400 flex items-center gap-1.5">
+                            <span>🎰 每日幸運大輪盤</span>
+                        </h3>
+                        <span id="wheelStatusBadge" class="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-semibold">每日1次</span>
+                    </div>
+
+                    <div class="relative w-44 h-44 mx-auto my-3 flex items-center justify-center">
+                        <!-- 轉盤指針 -->
+                        <div class="absolute -top-1.5 z-20 text-red-500 text-xl font-bold drop-shadow">▼</div>
+                        <!-- 輪盤圓盤 -->
+                        <div id="wheelDisc" class="w-full h-full rounded-full border-4 border-amber-500/50 bg-gray-900 flex items-center justify-center relative overflow-hidden shadow-2xl transition-all">
+                            <!-- 輪盤圖案/區域標示 -->
+                            <div class="absolute inset-0 rounded-full flex items-center justify-center text-xs font-black text-amber-300 select-none">
+                                <div class="absolute top-2">500點</div>
+                                <div class="absolute bottom-2">50點</div>
+                                <div class="absolute left-2">100點</div>
+                                <div class="absolute right-2">200點</div>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-gray-950 border-2 border-amber-500/70 z-10 flex items-center justify-center font-bold text-[10px] text-amber-400">
+                                LUCK
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="spinWheel()" id="spinBtn" class="w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95">
+                        🎯 立即轉動 (免費)
+                    </button>
+                </div>
+
                 <!-- 賽季資訊卡片 -->
                 <div class="glass-card p-5 rounded-3xl shadow-xl">
                     <div class="flex justify-between items-center mb-2.5">
@@ -310,7 +359,7 @@
             <div class="space-y-3.5 text-xs text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
                     <h4 class="font-bold text-yellow-400 text-sm mb-1">1. 🎯 如何開始與累積積分？</h4>
-                    <p class="text-gray-400">輸入專屬暱稱點擊「登入/註冊」即可擁有雲端帳號，系統會自動贈送 1000 點。每天可至「每日簽到」領取額外獎勵！</p>
+                    <p class="text-gray-400">輸入專屬暱稱點擊「登入/註冊」即可擁有雲端帳號，系統會自動贈送 1000 點。每天可至「每日簽到」與「幸運大輪盤」領取額外獎勵！</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
@@ -387,6 +436,49 @@
     </div>
 
     <script>
+        // ------------------ 星空背景動畫 ------------------
+        (function initParticles() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, particles;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                particles = Array.from({ length: 45 }, () => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    r: Math.random() * 2 + 0.5,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    alpha: Math.random() * 0.6 + 0.2
+                }));
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < 0) p.x = width;
+                    if (p.x > width) p.x = 0;
+                    if (p.y < 0) p.y = height;
+                    if (p.y > height) p.y = 0;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(147, 197, 253, ${p.alpha})`;
+                    ctx.fill();
+                });
+                requestAnimationFrame(draw);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            draw();
+        })();
+
+        // ------------------ 主要邏輯 ------------------
         let currentUser = null;
         let balance = 1000;
         let wins = 0;
@@ -395,19 +487,21 @@
         let myBetLogs = []; 
         let lastCheckinDate = "";
         let checkinStreak = 0;
+        let lastWheelDate = ""; // 新增：輪盤最後轉動日期
         
         let dailyPostDate = "";
         let dailyPostCount = 0;
 
         let currentFilter = '全部';
-        let currentLbTab = 'wealth'; // 預設排行榜分頁：wealth 或 winrate
+        let currentLbTab = 'wealth';
         let markets = [];
         let unsubMarkets = null;
         let unsubUsers = null;
         let allUsersData = {};
         let hallOfFameData = [];
+        let wheelDegree = 0;
+        let isSpinning = false;
         
-        // 增強型多空賽局色彩配置
         const optionThemeColors = [
             { bg: 'bg-emerald-500', text: 'text-emerald-400', border: 'border-emerald-500/30' },
             { bg: 'bg-rose-500', text: 'text-rose-400', border: 'border-rose-500/30' },
@@ -548,11 +642,7 @@
             let year = parseInt(p.year);
             let month = parseInt(p.month);
             let day = parseInt(p.day);
-            let hour = parseInt(p.hour);
-            let minute = parseInt(p.minute);
-            let second = parseInt(p.second);
 
-            let bjNowTime = Date.UTC(year, month - 1, day, hour, minute, second);
             let seasonName = "";
             let endTimestamp = 0;
 
@@ -571,7 +661,7 @@
             }
 
             titleEl.innerText = `🌟 目前賽季：${seasonName}`;
-            let distance = endTimestamp - bjNowTime;
+            let distance = endTimestamp - Date.now();
 
             if (distance < 0) {
                 countdownEl.innerText = "本季已結算，新季度即將展開！";
@@ -601,25 +691,6 @@
                     let s = Math.floor((diff % (1000 * 60)) / 1000);
                     let timeStr = d > 0 ? `${d}天 ${h}時 ${m}分 ${s}秒` : `${h}時 ${m}分 ${s}秒`;
                     el.innerText = `⏰ 距離截止：${timeStr}`;
-                }
-            });
-
-            document.querySelectorAll('.history-expiry-timer').forEach(el => {
-                let closedAt = parseInt(el.getAttribute('data-closedat'));
-                if (!closedAt || isNaN(closedAt)) return;
-                let expiryTime = closedAt + (3600 * 1000);
-                let diff = expiryTime - now;
-
-                if (diff <= 0) {
-                    el.innerText = "⏳ 歷史紀錄即將清除...";
-                } else {
-                    let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    let s = Math.floor((diff % (1000 * 60)) / 1000);
-                    let hStr = h < 10 ? '0' + h : h;
-                    let mStr = m < 10 ? '0' + m : m;
-                    let sStr = s < 10 ? '0' + s : s;
-                    el.innerText = `⏳ 離自動清除剩餘：${hStr}時 ${mStr}分 ${sStr}秒`;
                 }
             });
         }
@@ -692,6 +763,7 @@
                     myBetLogs = userData.myBetLogs || [];
                     lastCheckinDate = userData.lastCheckinDate || "";
                     checkinStreak = userData.checkinStreak || 0;
+                    lastWheelDate = userData.lastWheelDate || "";
                     
                     if (userData.dailyPostDate === today) {
                         dailyPostDate = userData.dailyPostDate;
@@ -710,6 +782,7 @@
                     myBetLogs = [];
                     lastCheckinDate = "";
                     checkinStreak = 0;
+                    lastWheelDate = "";
                     dailyPostDate = today;
                     dailyPostCount = 0;
                     currentUser = inputName;
@@ -723,6 +796,7 @@
                         myBetLogs: myBetLogs,
                         lastCheckinDate: lastCheckinDate,
                         checkinStreak: checkinStreak,
+                        lastWheelDate: lastWheelDate,
                         dailyPostDate: dailyPostDate,
                         dailyPostCount: dailyPostCount
                     });
@@ -731,6 +805,7 @@
                 localStorage.setItem('saved_current_user', currentUser);
                 updateAuthUI();
                 startRealtimeListeners();
+                updateWheelUI();
                 showToast(`歡迎回來，${currentUser}！`, 'success');
             } catch (e) {
                 console.error("登入失敗: ", e);
@@ -752,6 +827,7 @@
                     myBetLogs: myBetLogs,
                     lastCheckinDate: lastCheckinDate,
                     checkinStreak: checkinStreak,
+                    lastWheelDate: lastWheelDate,
                     dailyPostDate: dailyPostDate,
                     dailyPostCount: dailyPostCount
                 }, { merge: true });
@@ -769,10 +845,12 @@
             userBets = {};
             myBetLogs = [];
             dailyPostCount = 0;
+            lastWheelDate = "";
             if (unsubMarkets) unsubMarkets();
             if (unsubUsers) unsubUsers();
             updateAuthUI();
             updateUI();
+            updateWheelUI();
             showToast('已成功登出', 'info');
         }
         window.logoutUser = logoutUser;
@@ -811,6 +889,7 @@
                         myBetLogs = d.myBetLogs || [];
                         lastCheckinDate = d.lastCheckinDate || "";
                         checkinStreak = d.checkinStreak || 0;
+                        lastWheelDate = d.lastWheelDate || "";
                         
                         let today = getTodayDateString();
                         if (d.dailyPostDate === today) {
@@ -828,6 +907,7 @@
             updateAuthUI();
             startRealtimeListeners();
             loadHallOfFameFromCloud();
+            updateWheelUI();
         }
         window.initApp = initApp;
 
@@ -887,6 +967,7 @@
                     myBetLogs = allUsersData[currentUser].myBetLogs || [];
                     lastCheckinDate = allUsersData[currentUser].lastCheckinDate || "";
                     checkinStreak = allUsersData[currentUser].checkinStreak || 0;
+                    lastWheelDate = allUsersData[currentUser].lastWheelDate || "";
                     
                     let today = getTodayDateString();
                     if (allUsersData[currentUser].dailyPostDate === today) {
@@ -901,6 +982,7 @@
                 updateMyTitlePreview();
                 document.getElementById('userBalance').innerText = balance;
                 updateQuotaUI();
+                updateWheelUI();
             });
 
             if (unsubMarkets) unsubMarkets();
@@ -1028,7 +1110,6 @@
             if (currentLbTab === 'wealth') {
                 playerArray.sort((a, b) => b.score - a.score);
             } else {
-                // 勝率榜排序：至少玩過1場才排前面，依勝率排序，若勝率相同則比總場數或積分
                 playerArray.sort((a, b) => {
                     if (b.winRate !== a.winRate) return b.winRate - a.winRate;
                     return b.score - a.score;
@@ -1116,6 +1197,7 @@
                 let globalRank = sortedMarkets.findIndex(m => m.id === market.id);
                 let isTop20 = globalRank < 20;
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
+                let isHotFire = totalPool >= 1000; // 總彩池大於 1000 顯示火苗
                 
                 let deadlineMs = market.deadline ? new Date(market.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
                 let formattedTime = market.deadline || '無期限';
@@ -1131,7 +1213,9 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-xs bg-gray-950 text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg font-bold">#${globalRank + 1}</span>
                             <span class="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg font-medium">${market.category}</span>
-                            <h3 class="text-lg md:text-xl font-bold tracking-tight text-gray-100">${market.title}</h3>
+                            <h3 class="text-lg md:text-xl font-bold tracking-tight text-gray-100 flex items-center gap-1.5">
+                                ${market.title} ${isHotFire ? '<span class="text-amber-500 animate-pulse text-base" title="熱門熱鬥中">🔥</span>' : ''}
+                            </h3>
                         </div>
                         <span class="text-xs px-3 py-1 rounded-full font-medium ${market.status === 'open' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
                             ${market.status === 'open' ? '進行中' : '📜 歷史已結算'}
@@ -1212,11 +1296,9 @@
                 } else {
                     let closedTimeStr = market.closedAt ? new Date(market.closedAt).toLocaleString('zh-CN', { hour12: false }) : '剛剛';
                     let winnerText = market.options[market.resultIndex];
-                    let currentClosedAt = market.closedAt || Date.now();
                     contentHTML += `
                         <div class="text-xs space-y-1 text-right">
                             <div class="text-yellow-400 font-bold">🏁 結算勝出：${winnerText} (於 ${closedTimeStr})</div>
-                            <div class="text-rose-400 font-mono history-expiry-timer" data-closedat="${currentClosedAt}">⏳ 離自動清除剩餘：計算中...</div>
                         </div>
                     `;
                 }
@@ -1263,6 +1345,66 @@
             });
         }
 
+        // ------------------ 幸運轉盤機制 ------------------
+        function updateWheelUI() {
+            let btn = document.getElementById('spinBtn');
+            let badge = document.getElementById('wheelStatusBadge');
+            if (!btn || !badge) return;
+
+            let today = getTodayDateString();
+            if (!currentUser) {
+                btn.disabled = true;
+                btn.innerText = "請先登入帳號";
+                btn.className = "w-full mt-2 bg-gray-800 text-gray-500 font-extrabold py-2.5 rounded-xl cursor-not-allowed text-xs";
+                badge.innerText = "未登入";
+            } else if (lastWheelDate === today) {
+                btn.disabled = true;
+                btn.innerText = "今日已被領取";
+                btn.className = "w-full mt-2 bg-gray-800 text-gray-500 font-extrabold py-2.5 rounded-xl cursor-not-allowed text-xs";
+                badge.innerText = "明日再試";
+            } else {
+                btn.disabled = false;
+                btn.innerText = "🎯 立即轉動 (免費)";
+                btn.className = "w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95";
+                badge.innerText = "今日可轉";
+            }
+        }
+
+        async function spinWheel() {
+            if (!currentUser || isSpinning) return;
+            let today = getTodayDateString();
+            if (lastWheelDate === today) return;
+
+            isSpinning = true;
+            let btn = document.getElementById('spinBtn');
+            btn.disabled = true;
+
+            let prizes = [50, 100, 200, 500];
+            let randomIndex = Math.floor(Math.random() * prizes.length);
+            let prizePoint = prizes[randomIndex];
+
+            // 計算旋轉角度 (轉 5 圈加上獎品偏移角)
+            let baseRounds = 360 * 5;
+            let sectionAngle = 90 * randomIndex;
+            wheelDegree += baseRounds + sectionAngle + (Math.random() * 40 - 20);
+
+            let disc = document.getElementById('wheelDisc');
+            disc.style.transform = `rotate(${wheelDegree}deg)`;
+            disc.classList.add('wheel-spin');
+
+            setTimeout(async () => {
+                isSpinning = false;
+                balance += prizePoint;
+                lastWheelDate = today;
+
+                await updateCloudUserData();
+                showToast(`🎉 恭喜幸運獲得 ${prizePoint} 點數！`, 'success');
+                updateWheelUI();
+            }, 4000);
+        }
+        window.spinWheel = spinWheel;
+
+        // ------------------ 其他業務操作 ------------------
         async function createMarket() {
             if (!currentUser) {
                 alert('請先在右上角登入帳號，才能發起預測！');
