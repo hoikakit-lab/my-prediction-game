@@ -8,7 +8,7 @@
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqflAy-z9D5oScaCGuarPrBUAwaJZw5_k",
@@ -33,11 +33,12 @@
         window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
         window.doc = doc;
-        window.arrayUnion = arrayUnion;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
 
         // 初始化載入雲端資料
-        if (typeof window.loadMarketsFromFirebase === 'function') {
-            window.loadMarketsFromFirebase();
+        if (typeof window.initApp === 'function') {
+            window.initApp();
         }
     </script>
 </head>
@@ -46,20 +47,37 @@
         <!-- 頂部標題與資產 -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (榮譽旗艦版)</h1>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (帳號雲端同步版)</h1>
                 <p class="text-gray-400 text-sm mt-1">🔥 下注、出題、邊看邊聊！爭奪預測之神頭銜。</p>
             </div>
-            <div class="flex items-center gap-4">
-                <!-- 用戶資產與頭銜顯示 -->
-                <div class="bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl text-right">
-                    <span id="userTitleBadge" class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 block mb-1">新手上路</span>
+            
+            <!-- 帳號登入與資產區塊 -->
+            <div class="flex items-center gap-3 flex-wrap">
+                <div id="loginSection" class="bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl flex items-center gap-2">
+                    <input type="text" id="authUsernameInput" placeholder="輸入您的專屬暱稱..." 
+                        class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-100 focus:outline-none focus:border-blue-500">
+                    <button onclick="loginUser()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                        登入/註冊
+                    </button>
+                </div>
+
+                <div id="userProfileSection" class="hidden bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl flex items-center gap-4">
                     <div>
-                        <span id="userBalance" class="text-2xl font-bold text-yellow-400">1000</span> <span class="text-xs text-gray-400">點積分</span>
+                        <span id="userTitleBadge" class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 block mb-1 text-center">新手上路</span>
+                        <div>
+                            <span id="currentLoggedInUser" class="text-xs text-blue-400 font-bold mr-2"></span>
+                            <span id="userBalance" class="text-xl font-bold text-yellow-400">1000</span> <span class="text-xs text-gray-400">點</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] px-2.5 py-1 rounded transition border border-gray-700">
+                            補領積分
+                        </button>
+                        <button onclick="logoutUser()" class="bg-red-900/40 hover:bg-red-900/60 text-red-300 text-[10px] px-2.5 py-1 rounded transition border border-red-700/40">
+                            登出
+                        </button>
                     </div>
                 </div>
-                <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-3 rounded-xl transition border border-gray-700">
-                    補領積分
-                </button>
             </div>
         </header>
 
@@ -78,12 +96,7 @@
                         </span>
                     </div>
                     <div class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">你的暱稱</label>
-                                <input type="text" id="creatorName" placeholder="例如：預測之神" value="路人甲" oninput="updateMyTitlePreview()"
-                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
-                            </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs text-gray-400 mb-1">預測分類</label>
                                 <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
@@ -157,13 +170,13 @@
     </div>
 
     <script>
+        let currentUser = null;
         let balance = 1000;
         let currentFilter = '全部';
         let markets = [];
         let userBets = {};
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
 
-        // 每日發布次數限制相關變數與檢查
         const MAX_DAILY_POSTS = 3;
 
         function getTodayDateString() {
@@ -188,7 +201,11 @@
             let btnEl = document.getElementById('createMarketBtn');
             if (quotaEl) quotaEl.innerText = remaining;
             if (btnEl) {
-                if (remaining <= 0) {
+                if (!currentUser) {
+                    btnEl.innerText = '請先登入帳號才能發起預測';
+                    btnEl.disabled = true;
+                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
+                } else if (remaining <= 0) {
                     btnEl.innerText = '今日發布額度已用完 (明天請早)';
                     btnEl.disabled = true;
                     btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
@@ -200,7 +217,105 @@
             }
         }
 
-        // 根據積分判定頭銜與樣式
+        // 登入或註冊帳號
+        async function loginUser() {
+            let inputName = document.getElementById('authUsernameInput').value.trim();
+            if (!inputName) {
+                alert('請輸入您的暱稱來登入或註冊！');
+                return;
+            }
+
+            if (!window.db) {
+                alert('資料庫連線中，請稍後再試');
+                return;
+            }
+
+            try {
+                let userDocRef = window.doc(window.db, "users", inputName);
+                let userSnap = await window.getDoc(userDocRef);
+
+                if (userSnap.exists()) {
+                    // 帳號已存在，讀取雲端積分
+                    let userData = userSnap.data();
+                    balance = userData.balance !== undefined ? userData.balance : 1000;
+                    currentUser = inputName;
+                    alert(`歡迎回來，${currentUser}！已成功載入您的雲端積分。`);
+                } else {
+                    // 帳號不存在，註冊新帳號並給予初始 1000 積分
+                    balance = 1000;
+                    currentUser = inputName;
+                    await window.setDoc(userDocRef, { username: currentUser, balance: balance });
+                    alert(`註冊成功！已為新帳號 ${currentUser} 建立雲端檔案，獲得 1000 初始積分。`);
+                }
+
+                // 儲存至本地記憶防重新整理失效
+                localStorage.setItem('saved_current_user', currentUser);
+                updateAuthUI();
+                loadMarketsFromFirebase();
+            } catch (e) {
+                console.error("登入失敗: ", e);
+                alert('登入發生錯誤，請檢查網路連線。');
+            }
+        }
+        window.loginUser = loginUser;
+
+        async function updateCloudBalance() {
+            if (!currentUser || !window.db) return;
+            try {
+                let userDocRef = window.doc(window.db, "users", currentUser);
+                await window.setDoc(userDocRef, { username: currentUser, balance: balance }, { merge: true });
+            } catch (e) {
+                console.error("更新雲端積分失敗: ", e);
+            }
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('saved_current_user');
+            balance = 1000;
+            updateAuthUI();
+            updateUI();
+        }
+        window.logoutUser = logoutUser;
+
+        function updateAuthUI() {
+            let loginSec = document.getElementById('loginSection');
+            let profileSec = document.getElementById('userProfileSection');
+            let nameSpan = document.getElementById('currentLoggedInUser');
+
+            if (currentUser) {
+                loginSec.classList.add('hidden');
+                profileSec.classList.remove('hidden');
+                nameSpan.innerText = currentUser;
+            } else {
+                loginSec.classList.remove('hidden');
+                profileSec.classList.add('hidden');
+                nameSpan.innerText = '';
+            }
+            updateMyTitlePreview();
+            updateQuotaUI();
+        }
+
+        // 初始化自動恢復登入狀態
+        async function initApp() {
+            let savedUser = localStorage.getItem('saved_current_user');
+            if (savedUser && window.db) {
+                try {
+                    let userDocRef = window.doc(window.db, "users", savedUser);
+                    let userSnap = await window.getDoc(userDocRef);
+                    if (userSnap.exists()) {
+                        currentUser = savedUser;
+                        balance = userSnap.data().balance;
+                    }
+                } catch (e) {
+                    console.error("自動恢復登入失敗: ", e);
+                }
+            }
+            updateAuthUI();
+            loadMarketsFromFirebase();
+        }
+        window.initApp = initApp;
+
         function getTitleAndBadge(score) {
             if (score >= 5000) {
                 return { name: "👑 預測之神", class: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40" };
@@ -286,28 +401,29 @@
             updateUI();
         }
 
-        // 渲染排行榜 (右側側邊欄)
-        function renderLeaderboard() {
+        async function renderLeaderboard() {
             let container = document.getElementById('leaderboardList');
             if (!container) return;
 
+            // 從雲端讀取所有使用者積分來組成最準確的排行榜
             let playersMap = {};
-            playersMap["路人甲"] = balance;
+            if (currentUser) playersMap[currentUser] = balance;
 
-            markets.forEach(m => {
-                if (m.creator) {
-                    if (!playersMap[m.creator]) playersMap[m.creator] = m.creatorScore || 1200;
-                }
-                if (m.comments) {
-                    m.comments.forEach(c => {
-                        if (!playersMap[c.user]) playersMap[c.user] = c.score || 1000;
-                    });
-                }
-            });
+            try {
+                let userSnapshots = await window.getDocs(window.collection(window.db, "users"));
+                userSnapshots.forEach(docSnap => {
+                    let d = docSnap.data();
+                    if (d.username && d.balance !== undefined) {
+                        playersMap[d.username] = d.balance;
+                    }
+                });
+            } catch (e) {
+                console.error("讀取用戶排行榜失敗: ", e);
+            }
 
             let sortedPlayers = Object.keys(playersMap).map(name => {
                 return { name: name, score: playersMap[name] };
-            }).sort((a, b) => b.score - a.score).slice(0, 10); // 右側可以多顯示幾名
+            }).sort((a, b) => b.score - a.score).slice(0, 10);
 
             let html = '';
             sortedPlayers.forEach((p, idx) => {
@@ -493,14 +609,17 @@
         }
 
         async function createMarket() {
-            // 檢查每日發布次數
+            if (!currentUser) {
+                alert('請先在右上角登入帳號，才能發起預測！');
+                return;
+            }
+
             let remaining = checkDailyQuota();
             if (remaining <= 0) {
                 alert('你今天發布預測題目的次數已達上限（每日最多 3 個），請明天再來！');
                 return;
             }
 
-            let creator = document.getElementById('creatorName').value.trim() || '匿名';
             let category = document.getElementById('marketCategory').value;
             let title = document.getElementById('newMarketTitle').value.trim();
             let deadline = document.getElementById('marketDeadline').value;
@@ -518,11 +637,12 @@
                 if (balance < 100) { alert('積分不足以支付 100 點推廣押金！'); return; }
                 balance -= 100;
                 initialPools[0] += 100;
+                await updateCloudBalance();
             }
 
             let newMarketObj = {
                 id: Date.now(),
-                creator: creator,
+                creator: currentUser,
                 creatorScore: balance,
                 category: category,
                 title: title,
@@ -541,7 +661,6 @@
                     await window.addDoc(window.collection(window.db, "markets"), newMarketObj);
                 }
                 
-                // 扣減並儲存今日次數
                 let currentCount = parseInt(localStorage.getItem('prediction_post_count') || '0');
                 localStorage.setItem('prediction_post_count', (currentCount + 1).toString());
 
@@ -557,6 +676,11 @@
         window.createMarket = createMarket;
 
         async function addComment(identifier) {
+            if (!currentUser) {
+                alert('請先登入帳號才能留言！');
+                return;
+            }
+
             let input = document.getElementById(`commentInput_${identifier}`);
             let text = input.value.trim();
             if (!text) { alert('請輸入留言內容！'); return; }
@@ -564,8 +688,7 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
-            let creator = document.getElementById('creatorName').value.trim() || '路人甲';
-            market.comments.push({ user: creator, score: balance, text: text });
+            market.comments.push({ user: currentUser, score: balance, text: text });
 
             try {
                 if (window.db && market.docId) {
@@ -622,10 +745,17 @@
         window.reportMarket = reportMarket;
 
         async function bet(identifier, optionIdx) {
+            if (!currentUser) {
+                alert('請先登入帳號才能下注！');
+                return;
+            }
+
             let cost = 100;
-            if (balance < cost) { alert('積分不足！點右上角「補領積分」加值。'); return; }
+            if (balance < cost) { alert('積分不足！點「補領積分」加值。'); return; }
 
             balance -= cost;
+            await updateCloudBalance();
+
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
@@ -676,7 +806,8 @@
             if (userWinningBet > 0 && winningPool > 0) {
                 payout = Math.round((userWinningBet / winningPool) * remainingPool);
                 balance += payout;
-                alert(`結算完成！此題移至歷史紀錄。你猜中了，贏得 ${payout} 點積分！`);
+                await updateCloudBalance();
+                alert(`結算完成！此題移至歷史紀錄。你猜中了，贏得 ${payout} 點積分已存入您的帳號！`);
             } else {
                 alert(`結算完成！此題已移至歷史紀錄。`);
             }
@@ -697,13 +828,20 @@
         }
         window.resolveMarket = resolveMarket;
 
-        function resetBalance() {
+        async function resetBalance() {
+            if (!currentUser) {
+                alert('請先登入帳號才能領取補領積分！');
+                return;
+            }
             balance += 1000;
+            await updateCloudBalance();
+            alert('成功補領 1000 點積分，已同步至雲端帳號！');
             updateUI();
         }
         window.resetBalance = resetBalance;
 
-        updateUI();
+        // 啟動初始化
+        initApp();
     </script>
 </body>
 </html>
