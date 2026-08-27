@@ -19,13 +19,9 @@
             appId: "1:1032097879200:web:ebc8565ad5c34e5eaf25c5"
         };
 
-        // 初始化 Firebase 與資料庫
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        console.log("Firebase 雲端資料庫連線就緒（即時同步版）！", db);
-
-        // 將變數與方法掛載到全域 window
         window.db = db;
         window.collection = collection;
         window.addDoc = addDoc;
@@ -37,7 +33,6 @@
         window.setDoc = setDoc;
         window.onSnapshot = onSnapshot;
 
-        // 初始化載入雲端資料
         if (typeof window.initApp === 'function') {
             window.initApp();
         }
@@ -49,12 +44,17 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
             <div>
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (賽季即時戰神版)</h1>
-                <p class="text-gray-400 text-sm mt-1">🔥 即時同步對賭、個人戰績追蹤、爭奪賽季最高榮譽。</p>
+                <div class="flex flex-wrap items-center gap-3 mt-1">
+                    <p class="text-gray-400 text-sm">🔥 即時同步對賭、個人戰績追蹤、爭奪賽季最高榮譽。</p>
+                    <!-- 需求1：正規北京時間，每分每秒跳動 -->
+                    <span id="beijingClock" class="text-xs bg-gray-900 border border-gray-800 text-cyan-400 px-3 py-1 rounded-lg font-mono">
+                        北京時間：載入中...
+                    </span>
+                </div>
             </div>
             
             <!-- 帳號登入與資產區塊 (含玩法介紹按鈕在左方) -->
             <div class="flex items-center gap-3 flex-wrap">
-                <!-- 新增的玩法介紹按鈕 -->
                 <button onclick="openGuideModal()" class="bg-gray-900 hover:bg-gray-800 text-cyan-400 border border-cyan-500/40 text-xs px-3.5 py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-lg">
                     📖 玩法介紹
                 </button>
@@ -90,7 +90,7 @@
             </div>
         </header>
 
-        <!-- 主體網格佈局：左側主要操作區，右側排行榜側邊欄 -->
+        <!-- 主體網格佈局 -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- 左側主要內容區 (佔 2 欄) -->
@@ -164,16 +164,16 @@
 
             <!-- 右側側邊欄：賽季資訊與排行榜 -->
             <div class="lg:col-span-1 space-y-6">
-                <!-- 賽季資訊卡片 -->
+                <!-- 賽季資訊卡片 (需求2：賽季為一季且每分每秒動態跳動) -->
                 <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-sm font-semibold text-purple-400">🌟 目前賽季：Season 1</h3>
+                        <h3 class="text-sm font-semibold text-purple-400">🌟 目前賽季：Season 1 (90天)</h3>
                         <span class="text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded border border-purple-700/40">進行中</span>
                     </div>
                     <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將獲得榮譽勳章與傳說頭銜！</p>
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-[10px] text-gray-500 block">距離本賽季結算還有</span>
-                        <span id="seasonCountdown" class="text-sm font-bold text-yellow-400">14 天 08 小時</span>
+                        <span class="text-[10px] text-gray-500 block mb-1">距離本賽季結算剩餘時間</span>
+                        <span id="seasonCountdown" class="text-xs font-bold text-yellow-400 font-mono">計算中...</span>
                     </div>
                 </div>
 
@@ -288,6 +288,106 @@
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
         const MAX_DAILY_POSTS = 3;
 
+        // 全域計時驅動（每秒更新時鐘與所有動態倒數）
+        setInterval(() => {
+            updateBeijingClock();
+            updateSeasonCountdown();
+            updateCardCountdowns();
+        }, 1000);
+
+        // 需求1：即時北京時間每秒跳動
+        function updateBeijingClock() {
+            let clockEl = document.getElementById('beijingClock');
+            if (!clockEl) return;
+            
+            // 透過 Intl API 取得準確的北京時間 (Asia/Shanghai)
+            let now = new Date();
+            let options = { 
+                timeZone: 'Asia/Shanghai', 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit', 
+                hour12: false 
+            };
+            let formatter = new Intl.DateTimeFormat('zh-CN', options);
+            let parts = formatter.formatToParts(now);
+            let p = {};
+            parts.forEach(item => p[item.type] = item.value);
+            
+            clockEl.innerText = `北京時間：${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+        }
+
+        // 需求2：賽季為一季（以90天計算）且每分每秒動態跳動
+        function updateSeasonCountdown() {
+            let countdownEl = document.getElementById('seasonCountdown');
+            if (!countdownEl) return;
+
+            // 以當前年度季度或固定 90 天賽季計時為基準
+            let now = new Date().getTime();
+            // 假設這一季結束時間設定為當前時間往後推 89天 23小時 59分 (或模擬固定賽季結算點)
+            let seasonEndStorage = localStorage.getItem('season_end_timestamp');
+            if (!seasonEndStorage) {
+                let futureTime = now + (90 * 24 * 60 * 60 * 1000);
+                localStorage.setItem('season_end_timestamp', futureTime);
+                seasonEndStorage = futureTime;
+            }
+            let distance = parseInt(seasonEndStorage) - now;
+
+            if (distance < 0) {
+                countdownEl.innerText = "本賽季已結算，新賽季即將展開！";
+                return;
+            }
+
+            let days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            let hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            let seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            countdownEl.innerText = `${days} 天 ${hours} 小時 ${minutes} 分 ${seconds} 秒`;
+        }
+
+        // 需求3與4：每秒刷新卡片內的「截止時間倒數」與歷史紀錄的「1小時清除倒數」
+        function updateCardCountdowns() {
+            let now = new Date().getTime();
+
+            // 更新進行中題目的截止倒數
+            document.querySelectorAll('.market-deadline-timer').forEach(el => {
+                let deadlineMs = parseInt(el.getAttribute('data-deadline'));
+                let diff = deadlineMs - now;
+                if (diff <= 0) {
+                    el.innerText = "⏰ 狀態：已過截止時間 (等待結算)";
+                    el.className = "text-red-400 font-semibold market-deadline-timer";
+                } else {
+                    let d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    let s = Math.floor((diff % (1000 * 60)) / 1000);
+                    let timeStr = d > 0 ? `${d}天 ${h}時 ${m}分 ${s}秒` : `${h}時 ${m}分 ${s}秒`;
+                    el.innerText = `⏰ 距離截止：${timeStr}`;
+                }
+            });
+
+            // 需求4：更新歷史紀錄的「1小時自動清除倒數」
+            document.querySelectorAll('.history-expiry-timer').forEach(el => {
+                let closedAt = parseInt(el.getAttribute('data-closedat'));
+                let expiryTime = closedAt + (3600 * 1000); // 1小時後
+                let diff = expiryTime - now;
+
+                if (diff <= 0) {
+                    el.innerText = "⏳ 歷史紀錄即將清除...";
+                    // 觸發重新渲染以自動清除
+                    updateUI();
+                } else {
+                    let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    let s = Math.floor((diff % (1000 * 60)) / 1000);
+                    el.innerText = `⏳ 離自動清除剩餘：00分 ${m < 10 ? '0' + m : m}秒`;
+                }
+            });
+        }
+
         function getTodayDateString() {
             let d = new Date();
             return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -326,7 +426,6 @@
             }
         }
 
-        // 登入或註冊帳號
         async function loginUser() {
             let inputName = document.getElementById('authUsernameInput').value.trim();
             if (!inputName) {
@@ -432,11 +531,9 @@
             }
             updateAuthUI();
             startRealtimeListeners();
-            startSeasonCountdown();
         }
         window.initApp = initApp;
 
-        // 即時監聽設定 (Real-time Listeners)
         function startRealtimeListeners() {
             if (!window.db) return;
 
@@ -481,12 +578,13 @@
                 }
 
                 if (markets.length === 0) {
+                    let defaultDeadline = new Date(now + 86400000).toISOString().slice(0, 16);
                     markets.push({
                         id: 1,
                         creator: "比特幣大戶",
                         category: "加密貨幣",
                         title: "比特幣今年底前會突破 15 萬美元嗎？",
-                        deadline: "2026-12-31T23:59",
+                        deadline: defaultDeadline,
                         options: ["會", "不會"],
                         pools: [500, 500],
                         status: 'open',
@@ -606,6 +704,8 @@
                 let globalRank = sortedMarkets.findIndex(m => m.id === market.id);
                 let isTop20 = globalRank < 20;
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
+                
+                let deadlineMs = market.deadline ? new Date(market.deadline).getTime() : (Date.now() + 86400000);
                 let formattedTime = market.deadline ? market.deadline.replace('T', ' ') : '無期限';
                 
                 let creatorScore = (allUsersData[market.creator] && allUsersData[market.creator].balance) || 1200;
@@ -629,11 +729,13 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             發起人：<span class="text-blue-400 font-semibold">${market.creator}</span>
                             <span class="px-2 py-0.5 rounded-full border text-[10px] ${creatorTitle.class}">${creatorTitle.name}</span>
-                            <span>| 截止時間：<span class="text-red-400 font-semibold">⏰ ${formattedTime}</span></span>
+                            <span>| 截止時間點：<span class="text-gray-200">${formattedTime}</span></span>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span>總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></span>
-                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">🔥 熱門前20名 (手續費優惠 1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費 5%)</span>'}
+                            <!-- 需求3：發表問題有設立時間顯示，並且每分每秒動態跳動 -->
+                            <span class="text-red-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
+                            <span>| 總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></span>
+                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">🔥 熱門前20名 (手續費 1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費 5%)</span>'}
                         </div>
                     </div>
                 `;
@@ -686,8 +788,15 @@
                     });
                     contentHTML += `</div>`;
                 } else {
+                    // 需求4：歷史紀錄顯示結算時間與 1 小時動態清除倒數
+                    let closedTimeStr = market.closedAt ? new Date(market.closedAt).toLocaleString('zh-CN', { hour12: false }) : '剛剛';
                     let winnerText = market.options[market.resultIndex];
-                    contentHTML += `<div class="text-xs text-yellow-400 font-semibold">🏁 已結算勝出：${winnerText}</div>`;
+                    contentHTML += `
+                        <div class="text-xs space-y-1 text-right">
+                            <div class="text-yellow-400 font-semibold">🏁 結算勝出：${winnerText} (於 ${closedTimeStr})</div>
+                            <div class="text-red-400 font-mono history-expiry-timer" data-closedat="${market.closedAt || Date.now()}">⏳ 離自動清除剩餘：計算中...</div>
+                        </div>
+                    `;
                 }
                 contentHTML += `</div>`;
 
@@ -966,7 +1075,6 @@
         }
         window.resetBalance = resetBalance;
 
-        // 玩法介紹 Modal 控制
         function openGuideModal() {
             document.getElementById('guideModal').classList.remove('hidden');
             document.getElementById('guideModal').classList.add('flex');
@@ -979,7 +1087,6 @@
         }
         window.closeGuideModal = closeGuideModal;
 
-        // 個人戰績 Modal 控制
         function openProfileModal() {
             if (!currentUser) {
                 alert('請先登入！');
@@ -1010,31 +1117,7 @@
         }
         window.closeProfileModal = closeProfileModal;
 
-        // 賽季倒數計時器
-        function startSeasonCountdown() {
-            let countdownEl = document.getElementById('seasonCountdown');
-            if (!countdownEl) return;
-
-            let targetTime = new Date().getTime() + 14 * 24 * 60 * 60 * 1000;
-
-            setInterval(() => {
-                let now = new Date().getTime();
-                let distance = targetTime - now;
-
-                if (distance < 0) {
-                    countdownEl.innerText = "賽季結算中...";
-                    return;
-                }
-
-                let days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                let hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-
-                countdownEl.innerText = `${days} 天 ${hours} 小時 ${minutes} 分`;
-            }, 1000);
-        }
-
-        // 啟動初始化
+        // 初始化
         initApp();
     </script>
 </body>
