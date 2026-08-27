@@ -14,7 +14,6 @@
         .god-gold-effect {
             animation: goldShine 2s infinite;
         }
-        /* 自定義捲軸 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #030712; }
         ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
@@ -118,7 +117,7 @@
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold text-blue-400">✨ 發起新的預測局</h2>
                         <span id="dailyQuotaBadge" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1 rounded-full">
-                            今日剩餘發布次數：<span id="remainingQuota" class="text-yellow-400 font-bold">3</span> / 3
+                            今日帳號剩餘發布次數：<span id="remainingQuota" class="text-yellow-400 font-bold">3</span> / 3
                         </span>
                     </div>
                     <div class="space-y-4">
@@ -134,10 +133,10 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (嚴格限制：年4碼/月01-12/日01-31/時00-23/分00-59)</label>
+                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (須大於當前北京時間)</label>
                                 <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)"
                                     class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm">
-                                <p id="deadlineErrorTip" class="text-[10px] text-red-400 mt-1 hidden">⚠️ 格式或數值錯誤：月份須為 01-12、日期 01-31、時間 00:00-23:59</p>
+                                <p id="deadlineErrorTip" class="text-[10px] text-red-400 mt-1 hidden">⚠️ 格式或數值錯誤：必須大於當前北京時間且符合有效日期格式</p>
                             </div>
                         </div>
                         <div>
@@ -269,7 +268,7 @@
 
                 <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
                     <h4 class="font-bold text-blue-400 text-sm mb-1">3. ✨ 發起預測與迷因支援</h4>
-                    <p>每日可免費發起 3 個預測題目，支援貼入迷因圖片網址增加討論度。熱門前 20 名的題目享有優惠手續費 (1%)。</p>
+                    <p>每日帳號獨立享有 3 次發布機會，支援貼入迷因圖片網址增加討論度。熱門前 20 名的題目享有優惠手續費 (1%)。</p>
                 </div>
 
                 <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
@@ -340,10 +339,14 @@
         let balance = 1000;
         let wins = 0;
         let losses = 0;
-        let userBets = {}; // 格式: { marketDocId: { optionIdx: amount } }
-        let myBetLogs = []; // 個人詳細下注紀錄
+        let userBets = {}; 
+        let myBetLogs = []; 
         let lastCheckinDate = "";
         let checkinStreak = 0;
+        
+        // 帳號獨立的每日發文次數記錄
+        let dailyPostDate = "";
+        let dailyPostCount = 0;
 
         let currentFilter = '全部';
         let markets = [];
@@ -355,7 +358,6 @@
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
         const MAX_DAILY_POSTS = 3;
 
-        // 全域計時驅動（每秒更新時鐘與所有動態倒數）
         setInterval(() => {
             updateBeijingClock();
             updateSeasonCountdown();
@@ -385,18 +387,13 @@
             }, 3500);
         }
 
-        // 強制格式化截止時間文字框，並在輸入時即時進行數值範圍防呆過濾
         function formatDeadlineInput(input) {
-            let v = input.value.replace(/\D/g, ''); // 只保留數字
+            let v = input.value.replace(/\D/g, ''); 
             let formatted = '';
             
-            if (v.length > 0) {
-                // 年份最多 4 位數
-                formatted += v.substring(0, 4);
-            }
+            if (v.length > 0) formatted += v.substring(0, 4);
             if (v.length >= 5) {
                 let m = v.substring(4, 6);
-                // 限制月份最高為 12，首位若大於 1 則直接截斷或修正
                 if (parseInt(m[0]) > 1) m = '12';
                 if (parseInt(m) > 12) m = '12';
                 if (parseInt(m) === 0) m = '01';
@@ -423,37 +420,56 @@
             }
             
             input.value = formatted;
+            validateDeadlineField(input.value);
+        }
+        window.formatDeadlineInput = formatDeadlineInput;
 
-            // 即時檢查錯誤提示紅字
+        // 檢查截止時間是否大於當前北京時間的輔助函式
+        function validateDeadlineField(val) {
             let errorTip = document.getElementById('deadlineErrorTip');
             let regex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\s([01]\d|2[0-3]):([0-5]\d)$/;
-            if (input.value.length >= 16) {
-                if (!regex.test(input.value)) {
+            
+            if (val.length >= 16) {
+                if (!regex.test(val)) {
                     errorTip.classList.remove('hidden');
+                    return false;
+                }
+                
+                // 取得當前嚴格北京時間物件進行比對
+                let bjNow = getBeijingCurrentDate();
+                let inputDate = new Date(val.replace(/-/g, '/'));
+                
+                if (inputDate <= bjNow) {
+                    errorTip.innerText = "⚠️ 截止時間必須大於當前北京時間！";
+                    errorTip.classList.remove('hidden');
+                    return false;
                 } else {
                     errorTip.classList.add('hidden');
+                    return true;
                 }
             } else {
                 errorTip.classList.add('hidden');
+                return false;
             }
         }
-        window.formatDeadlineInput = formatDeadlineInput;
+
+        // 取得當前北京時間的 Date 物件
+        function getBeijingCurrentDate() {
+            let now = new Date();
+            let options = { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false };
+            let formatter = new Intl.DateTimeFormat('en-US', options);
+            let parts = formatter.formatToParts(now);
+            let p = {};
+            parts.forEach(item => p[item.type] = item.value);
+            return new Date(Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second));
+        }
 
         function updateBeijingClock() {
             let clockEl = document.getElementById('beijingClock');
             if (!clockEl) return;
             
             let now = new Date();
-            let options = { 
-                timeZone: 'Asia/Shanghai', 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit', 
-                hour12: false 
-            };
+            let options = { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
             let formatter = new Intl.DateTimeFormat('zh-CN', options);
             let parts = formatter.formatToParts(now);
             let p = {};
@@ -468,17 +484,7 @@
             if (!countdownEl || !titleEl) return;
 
             let now = new Date();
-            let bjFormatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'Asia/Shanghai',
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: 'numeric',
-                second: 'numeric',
-                hour12: false
-            });
-            
+            let bjFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false });
             let parts = bjFormatter.formatToParts(now);
             let p = {};
             parts.forEach(item => p[item.type] = item.value);
@@ -526,7 +532,6 @@
 
         function updateCardCountdowns() {
             let now = Date.now();
-
             document.querySelectorAll('.market-deadline-timer').forEach(el => {
                 let deadlineMs = parseInt(el.getAttribute('data-deadline'));
                 let diff = deadlineMs - now;
@@ -546,7 +551,6 @@
             document.querySelectorAll('.history-expiry-timer').forEach(el => {
                 let closedAt = parseInt(el.getAttribute('data-closedat'));
                 if (!closedAt || isNaN(closedAt)) return;
-                
                 let expiryTime = closedAt + (3600 * 1000);
                 let diff = expiryTime - now;
 
@@ -556,30 +560,32 @@
                     let h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     let s = Math.floor((diff % (1000 * 60)) / 1000);
-                    
                     let hStr = h < 10 ? '0' + h : h;
                     let mStr = m < 10 ? '0' + m : m;
                     let sStr = s < 10 ? '0' + s : s;
-                    
                     el.innerText = `⏳ 離自動清除剩餘：${hStr}時 ${mStr}分 ${sStr}秒`;
                 }
             });
         }
 
         function getTodayDateString() {
-            let d = new Date();
-            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+            let now = new Date();
+            let options = { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric' };
+            let formatter = new Intl.DateTimeFormat('en-US', options);
+            let parts = formatter.formatToParts(now);
+            let p = {};
+            parts.forEach(item => p[item.type] = item.value);
+            return `${p.year}-${p.month}-${p.day}`;
         }
 
+        // 獨立帳號的每日發布次數管理
         function checkDailyQuota() {
-            let storedDate = localStorage.getItem('prediction_post_date');
             let today = getTodayDateString();
-            if (storedDate !== today) {
-                localStorage.setItem('prediction_post_date', today);
-                localStorage.setItem('prediction_post_count', '0');
+            if (dailyPostDate !== today) {
+                dailyPostDate = today;
+                dailyPostCount = 0;
             }
-            let count = parseInt(localStorage.getItem('prediction_post_count') || '0');
-            return MAX_DAILY_POSTS - count;
+            return MAX_DAILY_POSTS - dailyPostCount;
         }
 
         function updateQuotaUI() {
@@ -593,7 +599,7 @@
                     btnEl.disabled = true;
                     btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
                 } else if (remaining <= 0) {
-                    btnEl.innerText = '今日發布額度已用完 (明天請早)';
+                    btnEl.innerText = '今日帳號發布額度已用完 (明天請早)';
                     btnEl.disabled = true;
                     btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
                 } else {
@@ -620,6 +626,8 @@
                 let userDocRef = window.doc(window.db, "users", inputName);
                 let userSnap = await window.getDoc(userDocRef);
 
+                let today = getTodayDateString();
+
                 if (userSnap.exists()) {
                     let userData = userSnap.data();
                     balance = userData.balance !== undefined ? userData.balance : 1000;
@@ -629,6 +637,16 @@
                     myBetLogs = userData.myBetLogs || [];
                     lastCheckinDate = userData.lastCheckinDate || "";
                     checkinStreak = userData.checkinStreak || 0;
+                    
+                    // 讀取該帳號獨立的每日發布次數
+                    if (userData.dailyPostDate === today) {
+                        dailyPostDate = userData.dailyPostDate;
+                        dailyPostCount = userData.dailyPostCount || 0;
+                    } else {
+                        dailyPostDate = today;
+                        dailyPostCount = 0;
+                    }
+
                     currentUser = inputName;
                 } else {
                     balance = 1000;
@@ -638,7 +656,10 @@
                     myBetLogs = [];
                     lastCheckinDate = "";
                     checkinStreak = 0;
+                    dailyPostDate = today;
+                    dailyPostCount = 0;
                     currentUser = inputName;
+                    
                     await window.setDoc(userDocRef, { 
                         username: currentUser, 
                         balance: balance, 
@@ -647,7 +668,9 @@
                         userBets: userBets,
                         myBetLogs: myBetLogs,
                         lastCheckinDate: lastCheckinDate,
-                        checkinStreak: checkinStreak
+                        checkinStreak: checkinStreak,
+                        dailyPostDate: dailyPostDate,
+                        dailyPostCount: dailyPostCount
                     });
                 }
 
@@ -674,7 +697,9 @@
                     userBets: userBets,
                     myBetLogs: myBetLogs,
                     lastCheckinDate: lastCheckinDate,
-                    checkinStreak: checkinStreak
+                    checkinStreak: checkinStreak,
+                    dailyPostDate: dailyPostDate,
+                    dailyPostCount: dailyPostCount
                 }, { merge: true });
             } catch (e) {
                 console.error("更新雲端用戶資料失敗: ", e);
@@ -689,6 +714,7 @@
             losses = 0;
             userBets = {};
             myBetLogs = [];
+            dailyPostCount = 0;
             if (unsubMarkets) unsubMarkets();
             if (unsubUsers) unsubUsers();
             updateAuthUI();
@@ -731,6 +757,15 @@
                         myBetLogs = d.myBetLogs || [];
                         lastCheckinDate = d.lastCheckinDate || "";
                         checkinStreak = d.checkinStreak || 0;
+                        
+                        let today = getTodayDateString();
+                        if (d.dailyPostDate === today) {
+                            dailyPostDate = d.dailyPostDate;
+                            dailyPostCount = d.dailyPostCount || 0;
+                        } else {
+                            dailyPostDate = today;
+                            dailyPostCount = 0;
+                        }
                     }
                 } catch (e) {
                     console.error("自動恢復登入失敗: ", e);
@@ -798,10 +833,20 @@
                     myBetLogs = allUsersData[currentUser].myBetLogs || [];
                     lastCheckinDate = allUsersData[currentUser].lastCheckinDate || "";
                     checkinStreak = allUsersData[currentUser].checkinStreak || 0;
+                    
+                    let today = getTodayDateString();
+                    if (allUsersData[currentUser].dailyPostDate === today) {
+                        dailyPostDate = allUsersData[currentUser].dailyPostDate;
+                        dailyPostCount = allUsersData[currentUser].dailyPostCount || 0;
+                    } else {
+                        dailyPostDate = today;
+                        dailyPostCount = 0;
+                    }
                 }
                 renderLeaderboard();
                 updateMyTitlePreview();
                 document.getElementById('userBalance').innerText = balance;
+                updateQuotaUI();
             });
 
             if (unsubMarkets) unsubMarkets();
@@ -826,12 +871,12 @@
                 }
 
                 if (markets.length === 0) {
-                    let defaultDeadline = "2026-12-31 23:59";
+                    let defaultDeadline = "2030-12-31 23:59";
                     markets.push({
                         id: 1,
                         creator: "比特幣大戶",
                         category: "加密貨幣",
-                        title: "比特幣今年底前會突破 15 萬美元嗎？",
+                        title: "比特幣未來會突破 15 萬美元嗎？",
                         deadline: defaultDeadline,
                         options: ["會", "不會"],
                         pools: [500, 500],
@@ -1124,10 +1169,9 @@
             if (!title) { alert('請輸入預測題目！'); return; }
             if (!deadline) { alert('請完整填寫結算截止時間！'); return; }
 
-            // 嚴格正規表達式：檢核是否完全符合 YYYY-MM-DD HH:mm 且數值在合理範圍內
-            let deadlineRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\s([01]\d|2[0-3]):([0-5]\d)$/;
-            if (!deadlineRegex.test(deadline)) {
-                alert('截止時間格式或數值錯誤！月份必須為 01-12、日期 01-31、時間 00:00-23:59。');
+            // 嚴格檢核截止時間是否大於當前北京時間
+            if (!validateDeadlineField(deadline)) {
+                alert('截止時間必須大於當前北京時間，且格式須正確！');
                 return;
             }
 
@@ -1139,8 +1183,10 @@
                 if (balance < 100) { alert('積分不足以支付 100 點推廣押金！'); return; }
                 balance -= 100;
                 initialPools[0] += 100;
-                await updateCloudUserData();
             }
+
+            // 扣除次數並同步到該帳號變數中
+            dailyPostCount += 1;
 
             let newMarketObj = {
                 id: Date.now(),
@@ -1160,14 +1206,12 @@
 
             try {
                 if (window.db) {
+                    // 同步雲端資料與發文次數
+                    await updateCloudUserData();
                     await window.addDoc(window.collection(window.db, "markets"), newMarketObj);
                 }
                 
-                let currentCount = parseInt(localStorage.getItem('prediction_post_count') || '0');
-                localStorage.setItem('prediction_post_count', (currentCount + 1).toString());
-
                 updateQuotaUI();
-
                 showToast('成功發起預測題目！', 'success');
                 document.getElementById('newMarketTitle').value = '';
                 document.getElementById('marketDeadline').value = '';
@@ -1186,7 +1230,6 @@
                 alert('請先登入帳號才能留言！');
                 return;
             }
-
             let input = document.getElementById(`commentInput_${identifier}`);
             let text = input.value.trim();
             if (!text) { alert('請輸入留言內容！'); return; }
@@ -1235,7 +1278,7 @@
             try {
                 if (newReports >= 3) {
                     if (window.db && market.docId) {
-                        await window.deleteDoc(window.doc(window.doc(window.db, "markets", market.docId)));
+                        await window.deleteDoc(window.doc(window.db, "markets", market.docId));
                     }
                     showToast('此題目已被檢舉下架', 'warning');
                 } else {
@@ -1462,7 +1505,6 @@
         }
         window.closeGuideModal = closeGuideModal;
 
-        // 初始化
         initApp();
     </script>
 </body>
