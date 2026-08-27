@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全民預測大廳 - 討論區旗艦版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- 頂部標題與資產 -->
+        <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (討論區旗艦版)</h1>
+                <p class="text-gray-400 text-sm mt-1">🔥 下注、出題、邊看邊聊！熱門前 20 名享手續費優惠。</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl text-right">
+                    <span class="text-xs text-gray-400 block">你的可用積分</span>
+                    <span id="userBalance" class="text-2xl font-bold text-yellow-400">1000</span> 點
+                </div>
+                <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-2 rounded-xl transition border border-gray-700">
+                    補領積分
+                </button>
+            </div>
+        </header>
+
+        <!-- 建立新題目區塊 -->
+        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl mb-8 shadow-lg">
+            <h2 class="text-xl font-semibold mb-4 text-blue-400">✨ 發起新的預測局</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">你的暱稱</label>
+                        <input type="text" id="creatorName" placeholder="例如：預測之神" value="路人甲"
+                            class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">預測分類</label>
+                        <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            <option value="生活日常">生活日常</option>
+                            <option value="加密貨幣">加密貨幣</option>
+                            <option value="科技AI">科技AI</option>
+                            <option value="娛樂八卦">娛樂八卦</option>
+                            <option value="體育賽事">體育賽事</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">結算截止時間</label>
+                        <input type="datetime-local" id="marketDeadline"
+                            class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">預測題目</label>
+                    <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
+                        class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
+                    <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
+                        class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                </div>
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600">
+                    <label for="stakeBoost" class="text-xs text-gray-300">
+                        【進階推廣】自願從帳戶鎖定 100 積分作為初始彩池（增加熱度排名！）
+                    </label>
+                </div>
+                <button onclick="createMarket()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition">
+                    免費發起預測 (引流熱推中)
+                </button>
+            </div>
+        </section>
+
+        <!-- 預測列表 -->
+        <section>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區</h2>
+                <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
+                    <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
+                    <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
+                    <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
+                    <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
+                    <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
+                </div>
+            </div>
+            <div id="marketList" class="space-y-6">
+                <!-- 預測卡片會自動塞在這裡 -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let balance = 1000;
+        let currentFilter = '全部';
+
+        let markets = [
+            {
+                id: 1,
+                creator: "比特幣大戶",
+                category: "加密貨幣",
+                title: "比特幣今年底前會突破 15 萬美元嗎？",
+                deadline: "2026-12-31T23:59",
+                options: ["會", "不會"],
+                pools: [500, 500],
+                status: 'open',
+                resultIndex: null,
+                likes: 12,
+                reports: 0,
+                comments: [
+                    { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！" },
+                    { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。" }
+                ]
+            }
+        ];
+        let userBets = {};
+        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
+
+        function filterCategory(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if (btn.getAttribute('data-cat') === cat) {
+                    btn.className = 'px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn';
+                }
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('userBalance').innerText = balance;
+            const container = document.getElementById('marketList');
+            container.innerHTML = '';
+
+            let sortedMarkets = [...markets].sort((a, b) => {
+                let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
+                let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
+                return totalB - totalA;
+            });
+
+            let filtered = sortedMarkets.filter(m => {
+                if (currentFilter === '全部') return true;
+                return m.category === currentFilter;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl text-center text-gray-500">此分類目前沒有預測題目，快來發起一個吧！</div>`;
+                return;
+            }
+
+            filtered.forEach((market) => {
+                let globalRank = sortedMarkets.findIndex(m => m.id === market.id);
+                let isTop20 = globalRank < 20;
+                let totalPool = market.pools.reduce((a, b) => a + b, 0);
+                let formattedTime = market.deadline ? market.deadline.replace('T', ' ') : '無期限';
+
+                let card = document.createElement('div');
+                card.className = 'bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-md relative';
+                
+                let contentHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs bg-gray-800 text-yellow-400 px-2 py-0.5 rounded font-bold">#${globalRank + 1}</span>
+                            <span class="text-xs bg-blue-900/50 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded">${market.category}</span>
+                            <h3 class="text-lg font-bold">${market.title}</h3>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded-full ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700 text-gray-300'}">
+                            ${market.status === 'open' ? '進行中' : '已結算'}
+                        </span>
+                    </div>
+                    <div class="text-xs text-gray-400 mb-4 space-y-1">
+                        <div>發起人：<span class="text-blue-400">${market.creator}</span> | 截止時間：<span class="text-red-400 font-semibold">⏰ ${formattedTime}</span></div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span>總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></span>
+                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">🔥 熱門前20名 (手續費優惠 1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費 5%)</span>'}
+                        </div>
+                    </div>
+                `;
+
+                // 選項與下注進度條
+                contentHTML += `<div class="space-y-3 mb-4">`;
+                market.options.forEach((opt, idx) => {
+                    let pool = market.pools[idx];
+                    let percent = totalPool === 0 ? Math.round(100 / market.options.length) : Math.round((pool / totalPool) * 100);
+                    let colorClass = colors[idx % colors.length];
+                    let userOptionBet = (userBets[market.id] && userBets[market.id][idx]) || 0;
+
+                    contentHTML += `
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-semibold text-gray-200">${opt} (${percent}%) - 池: ${pool}</span>
+                                <span class="text-xs text-gray-400">你已下注: ${userOptionBet} 點</span>
+                            </div>
+                            <div class="w-full bg-gray-800 h-2.5 rounded-full overflow-hidden mb-2">
+                                <div class="${colorClass} h-full transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                    `;
+
+                    if (market.status === 'open') {
+                        contentHTML += `
+                            <button onclick="bet(${market.id}, ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition">
+                                押「${opt}」 (+100點)
+                            </button>
+                        `;
+                    }
+                    contentHTML += `</div>`;
+                });
+                contentHTML += `</div>`;
+
+                // 底部按鈕與結算
+                contentHTML += `
+                    <div class="mt-4 pt-4 border-t border-gray-800 flex flex-wrap justify-between items-center gap-2">
+                        <div class="flex items-center gap-2">
+                            <button onclick="likeMarket(${market.id})" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1">
+                                👍 有趣 (${market.likes})
+                            </button>
+                            <button onclick="reportMarket(${market.id})" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700">
+                                檢舉
+                            </button>
+                        </div>
+                `;
+
+                if (market.status === 'open') {
+                    contentHTML += `<div class="flex flex-wrap gap-1 items-center"><span class="text-xs text-gray-500">結算：</span>`;
+                    market.options.forEach((opt, idx) => {
+                        contentHTML += `<button onclick="resolveMarket(${market.id}, ${idx})" class="text-xs bg-gray-800 hover:bg-gray-700 text-yellow-400 px-2.5 py-1 rounded border border-gray-700">「${opt}」勝出</button>`;
+                    });
+                    contentHTML += `</div>`;
+                } else {
+                    let winnerText = market.options[market.resultIndex];
+                    contentHTML += `<div class="text-xs text-yellow-400 font-semibold">🏁 已結算：${winnerText}</div>`;
+                }
+                contentHTML += `</div>`;
+
+                // 💬 評論區專屬區塊
+                contentHTML += `
+                    <div class="mt-4 pt-4 border-t border-gray-800/60 bg-gray-950/40 p-4 rounded-xl">
+                        <h4 class="text-xs font-semibold text-gray-400 mb-3">💬 意見交流區 (${market.comments.length})</h4>
+                        <div class="space-y-2 mb-3 max-h-40 overflow-y-auto pr-1">
+                `;
+
+                if (market.comments.length === 0) {
+                    contentHTML += `<p class="text-xs text-gray-500 italic">目前還沒有人留言，快來發表你的看法吧！</p>`;
+                } else {
+                    market.comments.forEach(c => {
+                        contentHTML += `
+                            <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs">
+                                <span class="font-bold text-blue-400 mr-2">${c.user}:</span>
+                                <span class="text-gray-300">${c.text}</span>
+                            </div>
+                        `;
+                    });
+                }
+
+                contentHTML += `
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="commentInput_${market.id}" placeholder="說點什麼來辯論一下..." 
+                                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-blue-500">
+                            <button onclick="addComment(${market.id})" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold transition">
+                                留言
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                card.innerHTML = contentHTML;
+                container.appendChild(card);
+            });
+        }
+
+        function createMarket() {
+            let creator = document.getElementById('creatorName').value.trim() || '匿名';
+            let category = document.getElementById('marketCategory').value;
+            let title = document.getElementById('newMarketTitle').value.trim();
+            let deadline = document.getElementById('marketDeadline').value;
+            let optionsStr = document.getElementById('marketOptions').value.trim();
+            let wantStake = document.getElementById('stakeBoost').checked;
+
+            if (!title) { alert('請輸入預測題目！'); return; }
+            if (!deadline) { alert('請設定預測的截止時間！'); return; }
+
+            let options = optionsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            if (options.length < 2) { alert('至少需要設定 2 個選項！'); return; }
+
+            let initialPools = new Array(options.length).fill(100);
+            if (wantStake) {
+                if (balance < 100) { alert('積分不足以支付 100 點推廣押金！'); return; }
+                balance -= 100;
+                initialPools[0] += 100;
+            }
+
+            markets.push({
+                id: Date.now(),
+                creator: creator,
+                category: category,
+                title: title,
+                deadline: deadline,
+                options: options,
+                pools: initialPools,
+                status: 'open',
+                resultIndex: null,
+                likes: 1,
+                reports: 0,
+                comments: []
+            });
+
+            document.getElementById('newMarketTitle').value = document.getElementById('stakeBoost').checked = false;
+            alert('發起成功！題目已順利推送到大廳。');
+            updateUI();
+        }
+
+        function addComment(marketId) {
+            let input = document.getElementById(`commentInput_${marketId}`);
+            let text = input.value.trim();
+            if (!text) { alert('請輸入留言內容！'); return; }
+
+            let creator = document.getElementById('creatorName').value.trim() || '路人甲';
+            let market = markets.find(m => m.id === marketId);
+            market.comments.push({ user: creator, text: text });
+
+            input.value = '';
+            updateUI();
+        }
+
+        function likeMarket(marketId) {
+            let market = markets.find(m => m.id === marketId);
+            market.likes++;
+            updateUI();
+        }
+
+        function reportMarket(marketId) {
+            let market = markets.find(m => m.id === marketId);
+            market.reports++;
+            if (market.reports >= 3) {
+                markets = markets.filter(m => m.id !== marketId);
+                alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
+            } else {
+                alert('感謝回報，管理員會盡快審查此題目。');
+            }
+            updateUI();
+        }
+
+        function bet(marketId, optionIdx) {
+            let cost = 100;
+            if (balance < cost) { alert('積分不足！點右上角「補領積分」加值。'); return; }
+
+            balance -= cost;
+            let market = markets.find(m => m.id === marketId);
+            market.pools[optionIdx] += cost;
+
+            if (!userBets[marketId]) userBets[marketId] = {};
+            if (!userBets[marketId][optionIdx]) userBets[marketId][optionIdx] = 0;
+            userBets[marketId][optionIdx] += cost;
+
+            updateUI();
+        }
+
+        function resolveMarket(marketId, winningIdx) {
+            let market = markets.find(m => m.id === marketId);
+            market.status = 'closed';
+            market.resultIndex = winningIdx;
+
+            let sortedMarkets = [...markets].sort((a, b) => {
+                let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
+                let totalB = b.pools.reduce((x, y) => x + y, 0) + (b.likes * 20) + (b.comments.length * 10);
+                return totalB - totalA;
+            });
+            let rank = sortedMarkets.findIndex(m => m.id === marketId);
+
+            let totalPool = market.pools.reduce((a, b) => a + b, 0);
+            let feeRate = rank < 20 ? 0.01 : 0.05;
+            let platformFee = Math.round(totalPool * feeRate);
+            let remainingPool = totalPool - platformFee;
+
+            let userBetObj = userBets[marketId] || {};
+            let userWinningBet = userBetObj[winningIdx] || 0;
+            let winningPool = market.pools[winningIdx];
+
+            let payout = 0;
+            if (userWinningBet > 0 && winningPool > 0) {
+                payout = Math.round((userWinningBet / winningPool) * remainingPool);
+                balance += payout;
+                alert(`結算完成！此題熱度排名第 ${rank + 1}（手續費 ${feeRate * 100}%）。你猜中了，贏得 ${payout} 點積分！`);
+            } else {
+                alert(`結算完成！此題熱度排名第 ${rank + 1}。可惜你這局沒有押中。`);
+            }
+
+            updateUI();
+        }
+
+        function resetBalance() {
+            balance += 1000;
+            updateUI();
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
