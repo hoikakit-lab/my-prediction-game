@@ -4,15 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全民預測大廳 - 競技賽季殿堂版 🏆</title>
+    <!-- 引入專業現代字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         @keyframes goldShine {
             0% { filter: brightness(1); }
-            50% { filter: brightness(1.3); text-shadow: 0 0 10px rgba(234, 179, 8, 0.8); }
+            50% { filter: brightness(1.35); text-shadow: 0 0 12px rgba(234, 179, 8, 0.9); }
             100% { filter: brightness(1); }
         }
         .god-gold-effect {
             animation: goldShine 2s infinite;
+        }
+        /* 質感玻璃擬態 */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card-hover {
+            transition: all 0.25s ease;
+        }
+        .glass-card-hover:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.15);
         }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #030712; }
@@ -52,54 +81,58 @@
         }
     </script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-6 relative selection:bg-blue-500 selection:text-white">
+<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-8 relative selection:bg-blue-500 selection:text-white font-sans">
 
     <!-- 頂部動態通知吐司容器 -->
     <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <div class="max-w-7xl mx-auto">
         <!-- 頂部標題與資產 -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
-            <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">🎯 自由預測市集 (殿堂升級版)</h1>
-                <div class="flex flex-wrap items-center gap-3 mt-1">
-                    <p class="text-gray-400 text-sm">🔥 即時對賭、每日簽到、專屬下注歷史與名人堂榮譽。</p>
-                    <span id="beijingClock" class="text-xs bg-gray-900 border border-gray-800 text-cyan-400 px-3 py-1 rounded-lg font-mono">
+        <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-6">
+            <div class="text-center lg:text-left">
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
+                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">殿堂升級版</span>
+                </h1>
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
+                    <p class="text-gray-400 text-xs md:text-sm">🔥 即時對賭、每日簽到、專屬下注歷史與名人堂榮譽。</p>
+                    <span id="beijingClock" class="text-xs bg-gray-900/90 border border-gray-800 text-cyan-400 px-3.5 py-1.5 rounded-xl font-mono shadow-inner">
                         北京時間：載入中...
                     </span>
                 </div>
             </div>
             
             <!-- 帳號登入與資產區塊 -->
-            <div class="flex items-center gap-3 flex-wrap">
-                <button onclick="openGuideModal()" class="bg-gray-900 hover:bg-gray-800 text-cyan-400 border border-cyan-500/40 text-xs px-3.5 py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-lg">
+            <div class="flex items-center gap-3 flex-wrap justify-center">
+                <button onclick="openGuideModal()" class="glass-card hover:bg-gray-800/80 text-cyan-400 border-cyan-500/40 text-xs px-4 py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-md active:scale-95">
                     📖 玩法介紹
                 </button>
 
-                <div id="loginSection" class="bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl flex items-center gap-2">
+                <div id="loginSection" class="glass-card px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md">
                     <input type="text" id="authUsernameInput" placeholder="輸入您的專屬暱稱..." 
-                        class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-100 focus:outline-none focus:border-blue-500">
-                    <button onclick="loginUser()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                        class="bg-gray-950/80 border border-gray-700/80 rounded-lg px-3.5 py-1.5 text-xs text-gray-100 focus:outline-none focus:border-blue-500 transition">
+                    <button onclick="loginUser()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition shadow-sm active:scale-95">
                         登入/註冊
                     </button>
                 </div>
 
-                <div id="userProfileSection" class="hidden bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl flex items-center gap-4">
+                <div id="userProfileSection" class="hidden glass-card px-4 py-2.5 rounded-xl flex items-center gap-4 shadow-md">
                     <div>
-                        <span id="userTitleBadge" class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 block mb-1 text-center font-bold">新手上路</span>
-                        <div>
-                            <span id="currentLoggedInUser" class="text-xs text-blue-400 font-bold mr-2"></span>
-                            <span id="userBalance" class="text-xl font-bold text-yellow-400">1000</span> <span class="text-xs text-gray-400">點</span>
+                        <span id="userTitleBadge" class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 block mb-1 text-center font-bold tracking-wider">新手上路</span>
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="currentLoggedInUser" class="text-xs text-blue-400 font-bold"></span>
+                            <div>
+                                <span id="userBalance" class="text-lg font-extrabold text-yellow-400 tracking-tight">1000</span> <span class="text-[11px] text-gray-400">點</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <button onclick="openCheckinModal()" class="bg-emerald-900/50 hover:bg-emerald-900/80 text-emerald-200 text-[10px] px-2.5 py-1 rounded transition border border-emerald-700/50 flex items-center gap-1">
+                    <div class="flex flex-col gap-1.5 border-l border-gray-800 pl-3">
+                        <button onclick="openCheckinModal()" class="bg-emerald-900/40 hover:bg-emerald-900/70 text-emerald-200 text-[10px] px-3 py-1 rounded-lg transition border border-emerald-700/50 flex items-center gap-1 font-medium">
                             📅 每日簽到
                         </button>
-                        <button onclick="openProfileModal()" class="bg-purple-900/50 hover:bg-purple-900/80 text-purple-200 text-[10px] px-2.5 py-1 rounded transition border border-purple-700/50">
-                            📊 個人戰績 & 紀錄
+                        <button onclick="openProfileModal()" class="bg-purple-900/40 hover:bg-purple-900/70 text-purple-200 text-[10px] px-3 py-1 rounded-lg transition border border-purple-700/50 font-medium">
+                            📊 個人戰績
                         </button>
-                        <button onclick="logoutUser()" class="bg-red-900/40 hover:bg-red-900/60 text-red-300 text-[10px] px-2.5 py-1 rounded transition border border-red-700/40">
+                        <button onclick="logoutUser()" class="bg-red-900/30 hover:bg-red-900/55 text-red-300 text-[10px] px-3 py-1 rounded-lg transition border border-red-700/30 font-medium">
                             登出
                         </button>
                     </div>
@@ -113,18 +146,18 @@
             <!-- 左側主要內容區 -->
             <div class="lg:col-span-2 space-y-8">
                 <!-- 建立新題目區塊 -->
-                <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-lg">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-blue-400">✨ 發起新的預測局</h2>
-                        <span id="dailyQuotaBadge" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1 rounded-full">
-                            今日帳號剩餘發布次數：<span id="remainingQuota" class="text-yellow-400 font-bold">3</span> / 3
+                <section class="glass-card p-6 md:p-7 rounded-3xl shadow-xl">
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-lg md:text-xl font-bold text-blue-400 flex items-center gap-2">✨ 發起新的預測局</h2>
+                        <span id="dailyQuotaBadge" class="text-xs bg-gray-950/80 border border-gray-800 text-gray-300 px-3.5 py-1.5 rounded-full">
+                            今日剩餘發布次數：<span id="remainingQuota" class="text-yellow-400 font-extrabold">3</span> / 3
                         </span>
                     </div>
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">預測分類</label>
-                                <select id="marketCategory" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                                <label class="block text-xs text-gray-400 mb-1.5 font-medium">預測分類</label>
+                                <select id="marketCategory" class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                                     <option value="生活日常">生活日常</option>
                                     <option value="加密貨幣">加密貨幣</option>
                                     <option value="科技AI">科技AI</option>
@@ -133,36 +166,36 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (須大於當前北京時間)</label>
+                                <label class="block text-xs text-gray-400 mb-1.5 font-medium">結算截止時間 (須大於當前北京時間)</label>
                                 <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)"
-                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm">
-                                <p id="deadlineErrorTip" class="text-[10px] text-red-400 mt-1 hidden">⚠️ 格式或數值錯誤：必須大於當前北京時間且符合有效日期格式</p>
+                                    class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm transition">
+                                <p id="deadlineErrorTip" class="text-[11px] text-red-400 mt-1 hidden font-medium">⚠️ 格式或數值錯誤：必須大於當前北京時間且符合有效日期格式</p>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">預測題目</label>
+                            <label class="block text-xs text-gray-400 mb-1.5 font-medium">預測題目</label>
                             <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
-                                class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500">
+                                class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
+                                <label class="block text-xs text-gray-400 mb-1.5 font-medium">選項設定 (用逗號隔開)</label>
                                 <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
-                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                                    class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">迷因圖片網址 (選填)</label>
+                                <label class="block text-xs text-gray-400 mb-1.5 font-medium">迷因圖片網址 (選填)</label>
                                 <input type="text" id="marketImage" placeholder="https://example.com/image.jpg" 
-                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                                    class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                             </div>
                         </div>
                         <div class="flex items-center gap-2 pt-1">
-                            <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600">
-                            <label for="stakeBoost" class="text-xs text-gray-300">
+                            <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600 rounded">
+                            <label for="stakeBoost" class="text-xs text-gray-300 font-medium cursor-pointer">
                                 【進階推廣】自願從帳戶鎖定 100 積分作為初始彩池（增加熱度排名！）
                             </label>
                         </div>
-                        <button onclick="createMarket()" id="createMarketBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-blue-900/30">
+                        <button onclick="createMarket()" id="createMarketBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/25 active:scale-[0.99] text-sm">
                             免費發起預測 (即時同步)
                         </button>
                     </div>
@@ -170,15 +203,15 @@
 
                 <!-- 預測列表 -->
                 <section>
-                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                        <h2 class="text-xl font-semibold text-purple-400">🔥 熱門對賭清單與討論區 (即時更新)</h2>
+                    <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
+                        <h2 class="text-lg md:text-xl font-bold text-purple-400">🔥 熱門對賭清單與討論區</h2>
                         <div id="filterButtons" class="flex gap-2 flex-wrap text-xs">
-                            <button onclick="filterCategory('全部')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn" data-cat="全部">全部</button>
-                            <button onclick="filterCategory('生活日常')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="生活日常">生活日常</button>
-                            <button onclick="filterCategory('加密貨幣')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
-                            <button onclick="filterCategory('科技AI')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="科技AI">科技AI</button>
-                            <button onclick="filterCategory('娛樂八卦')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
-                            <button onclick="filterCategory('歷史紀錄')" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn border border-yellow-500/40 text-yellow-400" data-cat="歷史紀錄">📜 歷史紀錄</button>
+                            <button onclick="filterCategory('全部')" class="px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn" data-cat="全部">全部</button>
+                            <button onclick="filterCategory('生活日常')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="生活日常">生活日常</button>
+                            <button onclick="filterCategory('加密貨幣')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="加密貨幣">加密貨幣</button>
+                            <button onclick="filterCategory('科技AI')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="科技AI">科技AI</button>
+                            <button onclick="filterCategory('娛樂八卦')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn" data-cat="娛樂八卦">娛樂八卦</button>
+                            <button onclick="filterCategory('歷史紀錄')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-yellow-500/30 text-yellow-400 hover:bg-gray-800 transition cat-btn" data-cat="歷史紀錄">📜 歷史紀錄</button>
                         </div>
                     </div>
                     <div id="marketList" class="space-y-6">
@@ -190,35 +223,35 @@
             <!-- 右側側邊欄 -->
             <div class="lg:col-span-1 space-y-6">
                 <!-- 賽季資訊卡片 -->
-                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 id="seasonTitle" class="text-sm font-semibold text-purple-400">🌟 目前賽季：載入中...</h3>
-                        <span class="text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded border border-purple-700/40">進行中</span>
+                <div class="glass-card p-5 rounded-3xl shadow-xl">
+                    <div class="flex justify-between items-center mb-2.5">
+                        <h3 id="seasonTitle" class="text-sm font-bold text-purple-300">🌟 目前賽季：載入中...</h3>
+                        <span class="text-[10px] bg-purple-900/50 text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-700/50 font-semibold">進行中</span>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將自動寫入歷史名人堂並獲得榮譽勳章！</p>
-                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-[10px] text-gray-500 block mb-1">距離本季結算剩餘時間 (北京時間)</span>
-                        <span id="seasonCountdown" class="text-xs font-bold text-yellow-400 font-mono">計算中...</span>
+                    <p class="text-xs text-gray-400 mb-4 leading-relaxed">賽季結束時，前三名預測之神將自動寫入歷史名人堂並獲得榮譽勳章！</p>
+                    <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800/85 text-center">
+                        <span class="text-[10px] text-gray-400 block mb-1 font-medium">距離本季結算剩餘時間 (北京時間)</span>
+                        <span id="seasonCountdown" class="text-xs font-bold text-yellow-400 font-mono tracking-wide">計算中...</span>
                     </div>
                 </div>
 
                 <!-- 排行榜 -->
-                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
-                    <h2 class="text-lg font-semibold mb-3 text-yellow-400 flex items-center gap-2 border-b border-gray-800 pb-3">
+                <div class="glass-card p-5 rounded-3xl shadow-xl">
+                    <h2 class="text-base font-bold mb-4 text-yellow-400 flex items-center gap-2 border-b border-gray-800/80 pb-3">
                         <span>🏆 全站預測大神排行榜</span>
                     </h2>
-                    <div id="leaderboardList" class="space-y-3">
+                    <div id="leaderboardList" class="space-y-2.5">
                         <!-- 排行榜會自動帶入 -->
                     </div>
                 </div>
 
                 <!-- 歷史名人堂 (Hall of Fame) -->
-                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
-                    <h2 class="text-lg font-semibold mb-3 text-pink-400 flex items-center gap-2 border-b border-gray-800 pb-3">
+                <div class="glass-card p-5 rounded-3xl shadow-xl">
+                    <h2 class="text-base font-bold mb-4 text-pink-400 flex items-center gap-2 border-b border-gray-800/80 pb-3">
                         <span>🏛️ 歷史名人堂 (Hall of Fame)</span>
                     </h2>
                     <div id="hallOfFameList" class="space-y-2 text-xs text-gray-300">
-                        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center text-gray-500">
+                        <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800 text-center text-gray-500 font-medium">
                             歷屆賽季冠軍將在此永垂不朽...
                         </div>
                     </div>
@@ -229,106 +262,106 @@
     </div>
 
     <!-- 每日簽到 Modal 彈窗 -->
-    <div id="checkinModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-sm p-6 rounded-2xl shadow-2xl relative text-center">
-            <button onclick="closeCheckinModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold">✕</button>
-            <h3 class="text-xl font-bold text-emerald-400 mb-2">📅 每日回饋簽到</h3>
-            <p class="text-xs text-gray-400 mb-6">連續簽到可累積高額獎勵積分，每天只能簽到一次！</p>
+    <div id="checkinModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-card w-full max-w-sm p-6 rounded-3xl shadow-2xl relative text-center border border-gray-800">
+            <button onclick="closeCheckinModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-gray-800/60 flex items-center justify-center transition">✕</button>
+            <h3 class="text-xl font-bold text-emerald-400 mb-1.5">📅 每日回饋簽到</h3>
+            <p class="text-xs text-gray-400 mb-5 leading-relaxed">連續簽到可累積高額獎勵積分，每天只能簽到一次！</p>
             
-            <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 mb-6">
-                <span class="text-xs text-gray-400 block mb-1">目前連續簽到天數</span>
-                <span id="checkinStreakCount" class="text-2xl font-bold text-yellow-400">1 天</span>
-                <div id="todayCheckinStatus" class="text-xs text-emerald-400 font-semibold mt-2">今日尚未簽到</div>
+            <div class="bg-gray-950/90 p-4 rounded-2xl border border-gray-800/90 mb-5 shadow-inner">
+                <span class="text-xs text-gray-400 block mb-1 font-medium">目前連續簽到天數</span>
+                <span id="checkinStreakCount" class="text-3xl font-extrabold text-yellow-400 tracking-tight">1 天</span>
+                <div id="todayCheckinStatus" class="text-xs text-emerald-400 font-semibold mt-2.5">今日尚未簽到</div>
             </div>
 
-            <button onclick="claimCheckin()" id="claimCheckinBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition text-sm shadow-md">
+            <button onclick="claimCheckin()" id="claimCheckinBtn" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]">
                 立即領取今日簽到獎勵 (+200點)
             </button>
         </div>
     </div>
 
     <!-- 玩法介紹 Modal 彈窗 -->
-    <div id="guideModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-lg p-6 rounded-2xl shadow-2xl relative">
-            <button onclick="closeGuideModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold">✕</button>
+    <div id="guideModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-card w-full max-w-lg p-6 md:p-7 rounded-3xl shadow-2xl relative border border-gray-800">
+            <button onclick="closeGuideModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-gray-800/60 flex items-center justify-center transition">✕</button>
             <h3 class="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
                 📖 自由預測市集 - 玩法介紹
             </h3>
             
-            <div class="space-y-4 text-xs text-gray-300 leading-relaxed max-h-[65vh] overflow-y-auto pr-2">
-                <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
+            <div class="space-y-3.5 text-xs text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
                     <h4 class="font-bold text-yellow-400 text-sm mb-1">1. 🎯 如何開始與累積積分？</h4>
-                    <p>輸入專屬暱稱點擊「登入/註冊」即可擁有雲端帳號，系統會自動贈送 1000 點。每天可至「每日簽到」領取額外獎勵！</p>
+                    <p class="text-gray-400">輸入專屬暱稱點擊「登入/註冊」即可擁有雲端帳號，系統會自動贈送 1000 點。每天可至「每日簽到」領取額外獎勵！</p>
                 </div>
 
-                <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
                     <h4 class="font-bold text-purple-400 text-sm mb-1">2. 💰 參與下注與下注紀錄</h4>
-                    <p>在有興趣的預測題目中點擊「指定選項」參與對賭。猜中者依比例瓜分獎金，並可在「個人戰績」隨時檢視自己參與過的所有歷史下注與明細。</p>
+                    <p class="text-gray-400">在有興趣的預測題目中點擊「指定選項」參與對賭。猜中者依比例瓜分獎金，並可在「個人戰績」隨時檢視自己參與過的所有歷史下注與明細。</p>
                 </div>
 
-                <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
                     <h4 class="font-bold text-blue-400 text-sm mb-1">3. ✨ 發起預測與迷因支援</h4>
-                    <p>每日帳號獨立享有 3 次發布機會，支援貼入迷因圖片網址增加討論度。熱門前 20 名的題目享有優惠手續費 (1%)。</p>
+                    <p class="text-gray-400">每日帳號獨立享有 3 次發布機會，支援貼入迷因圖片網址增加討論度。熱門前 20 名的題目享有優惠手續費 (1%)。</p>
                 </div>
 
-                <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
                     <h4 class="font-bold text-pink-400 text-sm mb-1">4. 👑 殿堂與賽季榮譽</h4>
-                    <p>解鎖尊榮頭銜，並在季度結算時爭取榜首，名列右側「歷史名人堂」永垂不朽！</p>
+                    <p class="text-gray-400">解鎖尊榮頭銜，並在季度結算時爭取榜首，名列右側「歷史名人堂」永垂不朽！</p>
                 </div>
             </div>
 
-            <button onclick="closeGuideModal()" class="w-full mt-5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+            <button onclick="closeGuideModal()" class="w-full mt-5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md active:scale-[0.99]">
                 了解了，馬上開始玩！
             </button>
         </div>
     </div>
 
     <!-- 個人戰績與歷史明細 Modal 彈窗 -->
-    <div id="profileModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-2xl p-6 rounded-2xl shadow-2xl relative max-h-[85vh] flex flex-col">
-            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold">✕</button>
+    <div id="profileModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-card w-full max-w-2xl p-6 md:p-7 rounded-3xl shadow-2xl relative max-h-[85vh] flex flex-col border border-gray-800">
+            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-gray-800/60 flex items-center justify-center transition">✕</button>
             <h3 class="text-xl font-bold text-purple-400 mb-4">📊 我的專屬戰績與下注紀錄</h3>
             
             <div class="space-y-4 overflow-y-auto pr-1 flex-1">
-                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex justify-between items-center">
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800 flex justify-between items-center shadow-inner">
                     <div>
-                        <span class="text-xs text-gray-400 block">當前使用者</span>
-                        <span id="modalUsername" class="text-lg font-bold text-blue-400">-</span>
+                        <span class="text-[11px] text-gray-400 block font-medium">當前使用者</span>
+                        <span id="modalUsername" class="text-base font-bold text-blue-400">-</span>
                     </div>
                     <div>
-                        <span id="modalTitleBadge" class="text-[10px] px-2.5 py-1 rounded-full border font-bold">新手上路</span>
+                        <span id="modalTitleBadge" class="text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider">新手上路</span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-xs text-gray-400 block mb-1">目前積分</span>
-                        <span id="modalBalance" class="text-lg font-bold text-yellow-400">0</span> <span class="text-xs text-gray-400">點</span>
+                    <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800 text-center">
+                        <span class="text-[11px] text-gray-400 block mb-1 font-medium">目前積分</span>
+                        <span id="modalBalance" class="text-lg font-extrabold text-yellow-400">0</span> <span class="text-xs text-gray-400">點</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-xs text-gray-400 block mb-1">預測勝率</span>
-                        <span id="modalWinRate" class="text-lg font-bold text-green-400">0%</span>
+                    <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800 text-center">
+                        <span class="text-[11px] text-gray-400 block mb-1 font-medium">預測勝率</span>
+                        <span id="modalWinRate" class="text-lg font-extrabold text-green-400">0%</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-xs text-gray-400 block mb-1">勝場數</span>
+                    <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800 text-center">
+                        <span class="text-[11px] text-gray-400 block mb-1 font-medium">勝場數</span>
                         <span id="modalWins" class="text-sm font-bold text-blue-300">0 勝</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-xs text-gray-400 block mb-1">敗場數</span>
+                    <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800 text-center">
+                        <span class="text-[11px] text-gray-400 block mb-1 font-medium">敗場數</span>
                         <span id="modalLosses" class="text-sm font-bold text-red-300">0 敗</span>
                     </div>
                 </div>
 
                 <!-- 下注紀錄清單 -->
-                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
-                    <h4 class="text-xs font-semibold text-gray-300 mb-3">📜 我的歷史下注與損益明細</h4>
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800">
+                    <h4 class="text-xs font-bold text-gray-300 mb-3">📜 我的歷史下注與損益明細</h4>
                     <div id="myBetHistoryList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
                         <p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>
                     </div>
                 </div>
             </div>
 
-            <button onclick="closeProfileModal()" class="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+            <button onclick="closeProfileModal()" class="w-full mt-5 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md active:scale-[0.99]">
                 關閉面板
             </button>
         </div>
@@ -344,7 +377,6 @@
         let lastCheckinDate = "";
         let checkinStreak = 0;
         
-        // 帳號獨立的每日發文次數記錄
         let dailyPostDate = "";
         let dailyPostCount = 0;
 
@@ -369,12 +401,12 @@
             if (!container) return;
 
             let toast = document.createElement('div');
-            let bgColors = type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' : 
-                           type === 'warning' ? 'bg-amber-900/90 border-amber-500/50 text-amber-200' : 
-                           'bg-blue-900/90 border-blue-500/50 text-blue-200';
+            let bgColors = type === 'success' ? 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200' : 
+                           type === 'warning' ? 'bg-amber-950/95 border-amber-500/50 text-amber-200' : 
+                           'bg-blue-950/95 border-blue-500/50 text-blue-200';
             
-            toast.className = `pointer-events-auto border px-4 py-2.5 rounded-xl shadow-2xl text-xs flex items-center gap-2 transition-all duration-300 translate-x-10 opacity-0 ${bgColors}`;
-            toast.innerHTML = `<span>🔔</span> <span>${message}</span>`;
+            toast.className = `pointer-events-auto border px-4.5 py-3 rounded-2xl shadow-2xl text-xs flex items-center gap-2.5 transition-all duration-300 translate-x-10 opacity-0 backdrop-blur-md ${bgColors}`;
+            toast.innerHTML = `<span class="text-sm">🔔</span> <span class="font-medium">${message}</span>`;
             container.appendChild(toast);
 
             setTimeout(() => {
@@ -424,7 +456,6 @@
         }
         window.formatDeadlineInput = formatDeadlineInput;
 
-        // 檢查截止時間是否大於當前北京時間的輔助函式
         function validateDeadlineField(val) {
             let errorTip = document.getElementById('deadlineErrorTip');
             let regex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\s([01]\d|2[0-3]):([0-5]\d)$/;
@@ -435,7 +466,6 @@
                     return false;
                 }
                 
-                // 取得當前嚴格北京時間物件進行比對
                 let bjNow = getBeijingCurrentDate();
                 let inputDate = new Date(val.replace(/-/g, '/'));
                 
@@ -453,7 +483,6 @@
             }
         }
 
-        // 取得當前北京時間的 Date 物件
         function getBeijingCurrentDate() {
             let now = new Date();
             let options = { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false };
@@ -527,7 +556,7 @@
             let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             let seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-            countdownEl.innerText = `${days} 天 ${hours} 小時 ${minutes} 分 ${seconds} 秒`;
+            countdownEl.innerText = `${days}天 ${hours}時 ${minutes}分 ${seconds}秒`;
         }
 
         function updateCardCountdowns() {
@@ -578,7 +607,6 @@
             return `${p.year}-${p.month}-${p.day}`;
         }
 
-        // 獨立帳號的每日發布次數管理
         function checkDailyQuota() {
             let today = getTodayDateString();
             if (dailyPostDate !== today) {
@@ -597,15 +625,15 @@
                 if (!currentUser) {
                     btnEl.innerText = '請先登入帳號才能發起預測';
                     btnEl.disabled = true;
-                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
+                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm';
                 } else if (remaining <= 0) {
                     btnEl.innerText = '今日帳號發布額度已用完 (明天請早)';
                     btnEl.disabled = true;
-                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed';
+                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm';
                 } else {
                     btnEl.innerText = `免費發起預測 (今日剩餘額度: ${remaining})`;
                     btnEl.disabled = false;
-                    btnEl.className = 'w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-blue-900/30';
+                    btnEl.className = 'w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/25 active:scale-[0.99] text-sm';
                 }
             }
         }
@@ -638,7 +666,6 @@
                     lastCheckinDate = userData.lastCheckinDate || "";
                     checkinStreak = userData.checkinStreak || 0;
                     
-                    // 讀取該帳號獨立的每日發布次數
                     if (userData.dailyPostDate === today) {
                         dailyPostDate = userData.dailyPostDate;
                         dailyPostCount = userData.dailyPostCount || 0;
@@ -794,19 +821,19 @@
             if (!container) return;
 
             if (hallOfFameData.length === 0) {
-                container.innerHTML = `<div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center text-gray-500">歷屆賽季冠軍將在此永垂不朽...</div>`;
+                container.innerHTML = `<div class="bg-gray-950/80 p-3.5 rounded-2xl border border-gray-800 text-center text-gray-500 font-medium">歷屆賽季冠軍將在此永垂不朽...</div>`;
                 return;
             }
 
             let html = '';
             hallOfFameData.forEach(item => {
                 html += `
-                    <div class="bg-gray-950 p-3 rounded-xl border border-pink-500/30 flex justify-between items-center">
+                    <div class="bg-gray-950/80 p-3.5 rounded-2xl border border-pink-500/30 flex justify-between items-center shadow-sm">
                         <div>
-                            <span class="text-pink-400 font-bold block">${item.season} 冠軍</span>
-                            <span class="text-xs text-gray-200">👑 ${item.winner}</span>
+                            <span class="text-pink-400 font-bold block mb-0.5">${item.season} 冠軍</span>
+                            <span class="text-xs text-gray-200 font-medium">👑 ${item.winner}</span>
                         </div>
-                        <span class="text-yellow-400 font-bold text-xs">${item.score} 點</span>
+                        <span class="text-yellow-400 font-extrabold text-xs">${item.score} 點</span>
                     </div>
                 `;
             });
@@ -913,7 +940,7 @@
             let titleObj = getTitleAndBadge(balance);
             let badgeEl = document.getElementById('userTitleBadge');
             if (badgeEl) {
-                badgeEl.className = `text-[10px] px-2 py-0.5 rounded-full border block mb-1 text-center font-bold ${titleObj.class}`;
+                badgeEl.className = `text-[10px] px-2 py-0.5 rounded-full border block mb-1 text-center font-bold tracking-wider ${titleObj.class}`;
                 badgeEl.innerText = titleObj.name;
             }
         }
@@ -922,9 +949,9 @@
             currentFilter = cat;
             document.querySelectorAll('.cat-btn').forEach(btn => {
                 if (btn.getAttribute('data-cat') === cat) {
-                    btn.className = 'px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition cat-btn';
+                    btn.className = 'px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn';
                 } else {
-                    btn.className = 'px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition cat-btn';
+                    btn.className = 'px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn';
                 }
             });
             updateUI();
@@ -947,20 +974,20 @@
             sortedPlayers.forEach((p, idx) => {
                 let rankColors = [
                     'border-yellow-500/50 bg-yellow-500/10 text-yellow-400', 
-                    'border-gray-400/40 bg-gray-800 text-gray-300', 
-                    'border-amber-700/40 bg-amber-900/10 text-amber-500'
+                    'border-gray-400/40 bg-gray-800/70 text-gray-300', 
+                    'border-amber-700/40 bg-amber-900/20 text-amber-500'
                 ];
                 let rankBadge = ['🥇 1', '🥈 2', '🥉 3'][idx] || `#${idx + 1}`;
                 let titleObj = getTitleAndBadge(p.score);
 
                 html += `
-                    <div class="border ${rankColors[idx] || 'border-gray-800 bg-gray-950/60'} p-3 rounded-xl flex justify-between items-center text-xs">
+                    <div class="border ${rankColors[idx] || 'border-gray-800/80 bg-gray-950/60'} p-3.5 rounded-2xl flex justify-between items-center text-xs shadow-sm">
                         <div>
-                            <div class="font-bold text-sm mb-1">${rankBadge} - ${p.name}</div>
-                            <span class="px-2 py-0.5 rounded-full border text-[10px] ${titleObj.class}">${titleObj.name}</span>
+                            <div class="font-bold text-sm mb-1">${rankBadge} - <span class="text-gray-100">${p.name}</span></div>
+                            <span class="px-2.5 py-0.5 rounded-full border text-[10px] font-semibold ${titleObj.class}">${titleObj.name}</span>
                         </div>
                         <div class="text-right">
-                            <span class="text-yellow-400 font-bold text-sm">${p.score}</span> <span class="text-[10px] text-gray-400">點</span>
+                            <span class="text-yellow-400 font-extrabold text-sm">${p.score}</span> <span class="text-[10px] text-gray-400">點</span>
                         </div>
                     </div>
                 `;
@@ -990,7 +1017,7 @@
 
             if (filtered.length === 0) {
                 let emptyText = currentFilter === '歷史紀錄' ? '目前沒有已結算的歷史紀錄（保留 1 小時後自動清除）。' : '此分類目前沒有進行中的預測題目，快來發起一個吧！';
-                container.innerHTML = `<div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl text-center text-gray-500">${emptyText}</div>`;
+                container.innerHTML = `<div class="glass-card p-8 rounded-3xl text-center text-gray-500 text-sm font-medium shadow-xl">${emptyText}</div>`;
                 return;
             }
 
@@ -1006,16 +1033,16 @@
                 let creatorTitle = getTitleAndBadge(creatorScore);
 
                 let card = document.createElement('div');
-                card.className = 'bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-md relative';
+                card.className = 'glass-card glass-card-hover p-6 md:p-7 rounded-3xl shadow-xl relative';
                 
                 let contentHTML = `
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-xs bg-gray-800 text-yellow-400 px-2 py-0.5 rounded font-bold">#${globalRank + 1}</span>
-                            <span class="text-xs bg-blue-900/50 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded">${market.category}</span>
-                            <h3 class="text-lg font-bold">${market.title}</h3>
+                            <span class="text-xs bg-gray-950 text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg font-bold">#${globalRank + 1}</span>
+                            <span class="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg font-medium">${market.category}</span>
+                            <h3 class="text-lg md:text-xl font-bold tracking-tight text-gray-100">${market.title}</h3>
                         </div>
-                        <span class="text-xs px-2.5 py-1 rounded-full ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
+                        <span class="text-xs px-3 py-1 rounded-full font-medium ${market.status === 'open' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
                             ${market.status === 'open' ? '進行中' : '📜 歷史已結算'}
                         </span>
                     </div>
@@ -1023,28 +1050,28 @@
 
                 if (market.imageUrl) {
                     contentHTML += `
-                        <div class="mb-4 overflow-hidden rounded-xl border border-gray-800 max-h-60 bg-gray-950 flex justify-center">
-                            <img src="${market.imageUrl}" alt="迷因圖片" class="object-cover w-full h-auto max-h-60" onerror="this.parentElement.style.display='none'">
+                        <div class="mb-4 overflow-hidden rounded-2xl border border-gray-800 max-h-64 bg-gray-950 flex justify-center shadow-inner">
+                            <img src="${market.imageUrl}" alt="迷因圖片" class="object-cover w-full h-auto max-h-64" onerror="this.parentElement.style.display='none'">
                         </div>
                     `;
                 }
 
                 contentHTML += `
-                    <div class="text-xs text-gray-400 mb-4 space-y-1">
+                    <div class="text-xs text-gray-400 mb-5 space-y-1.5 font-medium">
                         <div class="flex items-center gap-2 flex-wrap">
-                            發起人：<span class="text-blue-400 font-semibold">${market.creator}</span>
-                            <span class="px-2 py-0.5 rounded-full border text-[10px] ${creatorTitle.class}">${creatorTitle.name}</span>
-                            <span>| 截止時間點：<span class="text-gray-200">${formattedTime}</span></span>
+                            發起人：<span class="text-blue-400 font-bold">${market.creator}</span>
+                            <span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${creatorTitle.class}">${creatorTitle.name}</span>
+                            <span class="text-gray-600">|</span> 截止時間：<span class="text-gray-200">${formattedTime}</span>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-red-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
-                            <span>| 總彩池（熱度）：<span class="text-yellow-400 font-bold">${totalPool} 點</span></span>
-                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">🔥 熱門前20名 (手續費 1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費 5%)</span>'}
+                            <span class="text-gray-600">|</span> 總彩池：<span class="text-yellow-400 font-bold">${totalPool} 點</span>
+                            ${isTop20 ? '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-md text-[10px] font-semibold">🔥 熱門前20 (手續費1%)</span>' : '<span class="text-gray-500 text-[10px]">(標準手續費5%)</span>'}
                         </div>
                     </div>
                 `;
 
-                contentHTML += `<div class="space-y-3 mb-4">`;
+                contentHTML += `<div class="space-y-3.5 mb-5">`;
                 market.options.forEach((opt, idx) => {
                     let pool = market.pools[idx];
                     let percent = totalPool === 0 ? Math.round(100 / market.options.length) : Math.round((pool / totalPool) * 100);
@@ -1052,21 +1079,21 @@
                     let userOptionBet = (userBets[market.id] && userBets[market.id][idx]) || 0;
 
                     contentHTML += `
-                        <div>
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="font-semibold text-gray-200">${opt} (${percent}%) - 池: ${pool}</span>
-                                <span class="text-xs text-gray-400">你已下注: ${userOptionBet} 點</span>
+                        <div class="bg-gray-950/60 p-3.5 rounded-2xl border border-gray-800/80">
+                            <div class="flex justify-between text-sm mb-1.5 font-medium">
+                                <span class="text-gray-200 font-semibold">${opt} <span class="text-xs text-gray-400 font-normal">(${percent}%) - 池: ${pool}</span></span>
+                                <span class="text-xs text-yellow-400/90 font-medium">你已下注: ${userOptionBet} 點</span>
                             </div>
-                            <div class="w-full bg-gray-800 h-2.5 rounded-full overflow-hidden mb-2">
-                                <div class="${colorClass} h-full transition-all duration-500 relative" style="width: ${percent}%">
-                                    <div class="absolute right-0 top-0 bottom-0 w-1 bg-white/60 animate-pulse"></div>
+                            <div class="w-full bg-gray-900 h-3 rounded-full overflow-hidden mb-3 p-0.5 border border-gray-800">
+                                <div class="${colorClass} h-full rounded-full transition-all duration-500 relative shadow-sm" style="width: ${percent}%">
+                                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-white/70 animate-pulse rounded-full"></div>
                                 </div>
                             </div>
                     `;
 
                     if (market.status === 'open') {
                         contentHTML += `
-                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition active:scale-[0.99]">
+                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700/80 text-gray-200 py-2.5 rounded-xl text-xs font-bold transition active:scale-[0.99] shadow-sm">
                                 押「${opt}」 (+100點)
                             </button>
                         `;
@@ -1076,21 +1103,21 @@
                 contentHTML += `</div>`;
 
                 contentHTML += `
-                    <div class="mt-4 pt-4 border-t border-gray-800 flex flex-wrap justify-between items-center gap-2">
+                    <div class="mt-4 pt-4 border-t border-gray-800/80 flex flex-wrap justify-between items-center gap-3">
                         <div class="flex items-center gap-2">
-                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1 transition active:scale-95">
+                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-green-400 px-3.5 py-2 rounded-xl border border-gray-800 flex items-center gap-1.5 transition active:scale-95 font-medium shadow-sm">
                                 👍 有趣 (${market.likes})
                             </button>
-                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700 transition">
+                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-red-400 px-3.5 py-2 rounded-xl border border-gray-800 transition font-medium shadow-sm">
                                 檢舉
                             </button>
                         </div>
                 `;
 
                 if (market.status === 'open') {
-                    contentHTML += `<div class="flex flex-wrap gap-1 items-center"><span class="text-xs text-gray-500">結算：</span>`;
+                    contentHTML += `<div class="flex flex-wrap gap-1.5 items-center"><span class="text-xs text-gray-500 font-medium">結算：</span>`;
                     market.options.forEach((opt, idx) => {
-                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-800 hover:bg-gray-700 text-yellow-400 px-2.5 py-1 rounded border border-gray-700 transition">「${opt}」勝出</button>`;
+                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-950 hover:bg-gray-800 text-yellow-400 px-3 py-2 rounded-xl border border-yellow-500/30 font-semibold transition shadow-sm">「${opt}」勝出</button>`;
                     });
                     contentHTML += `</div>`;
                 } else {
@@ -1099,7 +1126,7 @@
                     let currentClosedAt = market.closedAt || Date.now();
                     contentHTML += `
                         <div class="text-xs space-y-1 text-right">
-                            <div class="text-yellow-400 font-semibold">🏁 結算勝出：${winnerText} (於 ${closedTimeStr})</div>
+                            <div class="text-yellow-400 font-bold">🏁 結算勝出：${winnerText} (於 ${closedTimeStr})</div>
                             <div class="text-red-400 font-mono history-expiry-timer" data-closedat="${currentClosedAt}">⏳ 離自動清除剩餘：計算中...</div>
                         </div>
                     `;
@@ -1107,22 +1134,22 @@
                 contentHTML += `</div>`;
 
                 contentHTML += `
-                    <div class="mt-4 pt-4 border-t border-gray-800/60 bg-gray-950/40 p-4 rounded-xl">
-                        <h4 class="text-xs font-semibold text-gray-400 mb-3">💬 意見交流區 (${market.comments.length})</h4>
+                    <div class="mt-5 pt-4 border-t border-gray-800/60 bg-gray-950/50 p-4 rounded-2xl border border-gray-800/80">
+                        <h4 class="text-xs font-bold text-gray-300 mb-3 flex items-center gap-1.5">💬 意見交流區 (${market.comments.length})</h4>
                         <div class="space-y-2 mb-3 max-h-40 overflow-y-auto pr-1">
                 `;
 
                 if (market.comments.length === 0) {
-                    contentHTML += `<p class="text-xs text-gray-500 italic">目前還沒有人留言，快來發表你的看法吧！</p>`;
+                    contentHTML += `<p class="text-xs text-gray-500 italic text-center py-2">目前還沒有人留言，快來發表你的看法吧！</p>`;
                 } else {
                     market.comments.forEach(c => {
                         let cScore = (allUsersData[c.user] && allUsersData[c.user].balance) || 1000;
                         let cTitle = getTitleAndBadge(cScore);
                         contentHTML += `
-                            <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs flex items-center justify-between">
+                            <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs flex items-center justify-between shadow-sm">
                                 <div>
                                     <span class="font-bold text-blue-400 mr-1.5">${c.user}:</span>
-                                    <span class="px-2 py-0.2 rounded border text-[9px] ${cTitle.class} mr-2">${cTitle.name}</span>
+                                    <span class="px-2 py-0.5 rounded-full border text-[9px] font-semibold ${cTitle.class} mr-2">${cTitle.name}</span>
                                     <span class="text-gray-300">${c.text}</span>
                                 </div>
                             </div>
@@ -1134,8 +1161,8 @@
                         </div>
                         <div class="flex gap-2">
                             <input type="text" id="commentInput_${market.docId || market.id}" placeholder="說點什麼來辯論一下..." 
-                                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-blue-500">
-                            <button onclick="addComment('${market.docId || market.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold transition">
+                                class="flex-1 bg-gray-900 border border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-blue-500 transition">
+                            <button onclick="addComment('${market.docId || market.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95">
                                 留言
                             </button>
                         </div>
@@ -1169,7 +1196,6 @@
             if (!title) { alert('請輸入預測題目！'); return; }
             if (!deadline) { alert('請完整填寫結算截止時間！'); return; }
 
-            // 嚴格檢核截止時間是否大於當前北京時間
             if (!validateDeadlineField(deadline)) {
                 alert('截止時間必須大於當前北京時間，且格式須正確！');
                 return;
@@ -1185,7 +1211,6 @@
                 initialPools[0] += 100;
             }
 
-            // 扣除次數並同步到該帳號變數中
             dailyPostCount += 1;
 
             let newMarketObj = {
@@ -1206,7 +1231,6 @@
 
             try {
                 if (window.db) {
-                    // 同步雲端資料與發文次數
                     await updateCloudUserData();
                     await window.addDoc(window.collection(window.db, "markets"), newMarketObj);
                 }
@@ -1409,11 +1433,11 @@
             if (lastCheckinDate === today) {
                 statusEl.innerText = "今日已完成簽到！";
                 btnEl.disabled = true;
-                btnEl.className = "w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed text-sm";
+                btnEl.className = "w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm";
             } else {
                 statusEl.innerText = "今日尚未簽到，點擊下方領取！";
                 btnEl.disabled = false;
-                btnEl.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition text-sm shadow-md";
+                btnEl.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]";
             }
 
             document.getElementById('checkinModal').classList.remove('hidden');
@@ -1457,7 +1481,7 @@
 
             let titleObj = getTitleAndBadge(balance);
             let badgeEl = document.getElementById('modalTitleBadge');
-            badgeEl.className = `text-[10px] px-2.5 py-1 rounded-full border font-bold ${titleObj.class}`;
+            badgeEl.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
             badgeEl.innerText = titleObj.name;
 
             let historyContainer = document.getElementById('myBetHistoryList');
@@ -1466,12 +1490,12 @@
             } else {
                 let html = '';
                 myBetLogs.forEach(log => {
-                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status.includes('未中') ? 'text-red-400' : 'text-yellow-400';
+                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status.includes('未中') ? 'text-red-400 font-medium' : 'text-yellow-400 font-medium';
                     html += `
-                        <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs flex justify-between items-center">
+                        <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center shadow-sm">
                             <div>
-                                <span class="font-bold text-blue-300 block mb-0.5">${log.title}</span>
-                                <span class="text-gray-400">押「${log.option}」 ${log.amount}點 | ${log.time}</span>
+                                <span class="font-bold text-blue-300 block mb-1">${log.title}</span>
+                                <span class="text-gray-400 font-medium">押「${log.option}」 ${log.amount}點 | ${log.time}</span>
                             </div>
                             <div class="${statusColor} text-right text-xs">
                                 ${log.status}
