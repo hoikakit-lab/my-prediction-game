@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全民預測大廳 - 討論區旗艦版</title>
     <script src="https://cdn.tailwindcss.com"></script>
+<!-- 載入 Firebase 雲端大腦 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqflAy-z9D5oScaCGuarPrBUAwaJZw5_k",
+      authDomain: "my-prediction-game-7a454.firebaseapp.com",
+      projectId: "my-prediction-game-7a454",
+      storageBucket: "my-prediction-game-7a454.firebasestorage.app",
+      messagingSenderId: "1032097879200",
+      appId: "1:1032097879200:web:ebc8565ad5c34e5eaf25c5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    console.log("Firebase 雲端連線成功！");
+  </script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
