@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全民預測大廳 - 競技賽季即時版 🏆</title>
+    <title>全民預測大廳 - 競技賽季殿堂版 🏆</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes goldShine {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.3); text-shadow: 0 0 10px rgba(234, 179, 8, 0.8); }
+            100% { filter: brightness(1); }
+        }
+        .god-gold-effect {
+            animation: goldShine 2s infinite;
+        }
+        /* 自定義捲軸 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #374151; }
+    </style>
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -38,14 +53,18 @@
         }
     </script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-6">
+<body class="bg-gray-950 text-gray-100 min-h-screen p-4 md:p-6 relative selection:bg-blue-500 selection:text-white">
+
+    <!-- 頂部動態通知吐司容器 -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
     <div class="max-w-7xl mx-auto">
         <!-- 頂部標題與資產 -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-800 pb-4 gap-4">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">🎯 自由預測市集 (賽季即時戰神版)</h1>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">🎯 自由預測市集 (殿堂升級版)</h1>
                 <div class="flex flex-wrap items-center gap-3 mt-1">
-                    <p class="text-gray-400 text-sm">🔥 即時同步對賭、個人戰績追蹤、爭奪賽季最高榮譽。</p>
+                    <p class="text-gray-400 text-sm">🔥 即時對賭、每日簽到、專屬下注歷史與名人堂榮譽。</p>
                     <span id="beijingClock" class="text-xs bg-gray-900 border border-gray-800 text-cyan-400 px-3 py-1 rounded-lg font-mono">
                         北京時間：載入中...
                     </span>
@@ -68,18 +87,18 @@
 
                 <div id="userProfileSection" class="hidden bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl flex items-center gap-4">
                     <div>
-                        <span id="userTitleBadge" class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 block mb-1 text-center">新手上路</span>
+                        <span id="userTitleBadge" class="text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 block mb-1 text-center font-bold">新手上路</span>
                         <div>
                             <span id="currentLoggedInUser" class="text-xs text-blue-400 font-bold mr-2"></span>
                             <span id="userBalance" class="text-xl font-bold text-yellow-400">1000</span> <span class="text-xs text-gray-400">點</span>
                         </div>
                     </div>
                     <div class="flex flex-col gap-1">
-                        <button onclick="openProfileModal()" class="bg-purple-900/50 hover:bg-purple-900/80 text-purple-200 text-[10px] px-2.5 py-1 rounded transition border border-purple-700/50">
-                            📊 個人戰績
+                        <button onclick="openCheckinModal()" class="bg-emerald-900/50 hover:bg-emerald-900/80 text-emerald-200 text-[10px] px-2.5 py-1 rounded transition border border-emerald-700/50 flex items-center gap-1">
+                            📅 每日簽到
                         </button>
-                        <button onclick="resetBalance()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] px-2.5 py-1 rounded transition border border-gray-700">
-                            補領積分
+                        <button onclick="openProfileModal()" class="bg-purple-900/50 hover:bg-purple-900/80 text-purple-200 text-[10px] px-2.5 py-1 rounded transition border border-purple-700/50">
+                            📊 個人戰績 & 紀錄
                         </button>
                         <button onclick="logoutUser()" class="bg-red-900/40 hover:bg-red-900/60 text-red-300 text-[10px] px-2.5 py-1 rounded transition border border-red-700/40">
                             登出
@@ -125,10 +144,17 @@
                             <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
                                 class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500">
                         </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
-                            <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
-                                class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">選項設定 (用逗號隔開)</label>
+                                <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">迷因圖片網址 (選填)</label>
+                                <input type="text" id="marketImage" placeholder="https://example.com/image.jpg" 
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
                         </div>
                         <div class="flex items-center gap-2 pt-1">
                             <input type="checkbox" id="stakeBoost" class="w-4 h-4 accent-blue-600">
@@ -169,7 +195,7 @@
                         <h3 id="seasonTitle" class="text-sm font-semibold text-purple-400">🌟 目前賽季：載入中...</h3>
                         <span class="text-[10px] bg-purple-900/40 text-purple-300 px-2 py-0.5 rounded border border-purple-700/40">進行中</span>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將獲得榮譽勳章與傳說頭銜！</p>
+                    <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將自動寫入歷史名人堂並獲得榮譽勳章！</p>
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
                         <span class="text-[10px] text-gray-500 block mb-1">距離本季結算剩餘時間 (北京時間)</span>
                         <span id="seasonCountdown" class="text-xs font-bold text-yellow-400 font-mono">計算中...</span>
@@ -185,8 +211,39 @@
                         <!-- 排行榜會自動帶入 -->
                     </div>
                 </div>
+
+                <!-- 歷史名人堂 (Hall of Fame) -->
+                <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-lg">
+                    <h2 class="text-lg font-semibold mb-3 text-pink-400 flex items-center gap-2 border-b border-gray-800 pb-3">
+                        <span>🏛️ 歷史名人堂 (Hall of Fame)</span>
+                    </h2>
+                    <div id="hallOfFameList" class="space-y-2 text-xs text-gray-300">
+                        <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center text-gray-500">
+                            歷屆賽季冠軍將在此永垂不朽...
+                        </div>
+                    </div>
+                </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- 每日簽到 Modal 彈窗 -->
+    <div id="checkinModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-sm p-6 rounded-2xl shadow-2xl relative text-center">
+            <button onclick="closeCheckinModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold">✕</button>
+            <h3 class="text-xl font-bold text-emerald-400 mb-2">📅 每日回饋簽到</h3>
+            <p class="text-xs text-gray-400 mb-6">連續簽到可累積高額獎勵積分，每天只能簽到一次！</p>
+            
+            <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 mb-6">
+                <span class="text-xs text-gray-400 block mb-1">目前連續簽到天數</span>
+                <span id="checkinStreakCount" class="text-2xl font-bold text-yellow-400">1 天</span>
+                <div id="todayCheckinStatus" class="text-xs text-emerald-400 font-semibold mt-2">今日尚未簽到</div>
+            </div>
+
+            <button onclick="claimCheckin()" id="claimCheckinBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition text-sm shadow-md">
+                立即領取今日簽到獎勵 (+200點)
+            </button>
         </div>
     </div>
 
@@ -201,22 +258,22 @@
             <div class="space-y-4 text-xs text-gray-300 leading-relaxed max-h-[65vh] overflow-y-auto pr-2">
                 <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
                     <h4 class="font-bold text-yellow-400 text-sm mb-1">1. 🎯 如何開始與累積積分？</h4>
-                    <p>輸入專屬暱稱點擊「登入/註冊」即可擁有雲端帳號，系統會自動贈送 1000 點初始積分。若積分用完，可隨時點擊「補領積分」補充！</p>
+                    <p>輸入專屬暱稱點擊「登入/註冊」即可擁有雲端帳號，系統會自動贈送 1000 點。每天可至「每日簽到」領取額外獎勵！</p>
                 </div>
 
                 <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
-                    <h4 class="font-bold text-purple-400 text-sm mb-1">2. 💰 參與下注與贏取獎金</h4>
-                    <p>在有興趣的預測題目中點擊「押指定選項」即可花費 100 點參與對賭。當題目結算時，猜中勝出選項的玩家將依據下注比例瓜分整個彩池的大獎！</p>
+                    <h4 class="font-bold text-purple-400 text-sm mb-1">2. 💰 參與下注與下注紀錄</h4>
+                    <p>在有興趣的預測題目中點擊「指定選項」參與對賭。猜中者依比例瓜分獎金，並可在「個人戰績」隨時檢視自己參與過的所有歷史下注與明細。</p>
                 </div>
 
                 <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
-                    <h4 class="font-bold text-blue-400 text-sm mb-1">3. ✨ 發起預測與熱門排行</h4>
-                    <p>每天每人可免費發起 3 個預測題目。進入熱門前 20 名的題目還能享有手續費優惠（僅扣 1%），吸引更多人來你的局下注！</p>
+                    <h4 class="font-bold text-blue-400 text-sm mb-1">3. ✨ 發起預測與迷因支援</h4>
+                    <p>每日可免費發起 3 個預測題目，支援貼入迷因圖片網址增加討論度。熱門前 20 名的題目享有優惠手續費 (1%)。</p>
                 </div>
 
                 <div class="bg-gray-950 p-3.5 rounded-xl border border-gray-800">
-                    <h4 class="font-bold text-green-400 text-sm mb-1">4. 👑 頭銜晉升與賽季榮譽</h4>
-                    <p>隨著你的積分增加，會解鎖不同的尊榮頭銜（從新手上路一路晉升至預測之神）。挑戰在排行榜上名列前茅，爭奪賽季最高榮譽！</p>
+                    <h4 class="font-bold text-pink-400 text-sm mb-1">4. 👑 殿堂與賽季榮譽</h4>
+                    <p>解鎖尊榮頭銜，並在季度結算時爭取榜首，名列右側「歷史名人堂」永垂不朽！</p>
                 </div>
             </div>
 
@@ -226,48 +283,53 @@
         </div>
     </div>
 
-    <!-- 個人戰績 Modal 彈窗 -->
+    <!-- 個人戰績與歷史明細 Modal 彈窗 -->
     <div id="profileModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-md p-6 rounded-2xl shadow-2xl relative">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-2xl p-6 rounded-2xl shadow-2xl relative max-h-[85vh] flex flex-col">
             <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold">✕</button>
-            <h3 class="text-xl font-bold text-purple-400 mb-4">📊 我的專屬戰績看板</h3>
+            <h3 class="text-xl font-bold text-purple-400 mb-4">📊 我的專屬戰績與下注紀錄</h3>
             
-            <div class="space-y-4">
+            <div class="space-y-4 overflow-y-auto pr-1 flex-1">
                 <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex justify-between items-center">
                     <div>
                         <span class="text-xs text-gray-400 block">當前使用者</span>
                         <span id="modalUsername" class="text-lg font-bold text-blue-400">-</span>
                     </div>
                     <div>
-                        <span id="modalTitleBadge" class="text-[10px] px-2 py-0.5 rounded-full border font-bold">新手上路</span>
+                        <span id="modalTitleBadge" class="text-[10px] px-2.5 py-1 rounded-full border font-bold">新手上路</span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
                         <span class="text-xs text-gray-400 block mb-1">目前積分</span>
-                        <span id="modalBalance" class="text-xl font-bold text-yellow-400">0</span> <span class="text-xs text-gray-400">點</span>
+                        <span id="modalBalance" class="text-lg font-bold text-yellow-400">0</span> <span class="text-xs text-gray-400">點</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
                         <span class="text-xs text-gray-400 block mb-1">預測勝率</span>
-                        <span id="modalWinRate" class="text-xl font-bold text-green-400">0%</span>
+                        <span id="modalWinRate" class="text-lg font-bold text-green-400">0%</span>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-xs text-gray-400 block mb-1">預測勝場數</span>
+                        <span class="text-xs text-gray-400 block mb-1">勝場數</span>
                         <span id="modalWins" class="text-sm font-bold text-blue-300">0 勝</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-xs text-gray-400 block mb-1">預測敗場數</span>
+                        <span class="text-xs text-gray-400 block mb-1">敗場數</span>
                         <span id="modalLosses" class="text-sm font-bold text-red-300">0 敗</span>
+                    </div>
+                </div>
+
+                <!-- 下注紀錄清單 -->
+                <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                    <h4 class="text-xs font-semibold text-gray-300 mb-3">📜 我的歷史下注與損益明細</h4>
+                    <div id="myBetHistoryList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>
                     </div>
                 </div>
             </div>
 
-            <button onclick="closeProfileModal()" class="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-sm">
-                關閉戰績面板
+            <button onclick="closeProfileModal()" class="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+                關閉面板
             </button>
         </div>
     </div>
@@ -277,12 +339,17 @@
         let balance = 1000;
         let wins = 0;
         let losses = 0;
+        let userBets = {}; // 格式: { marketDocId: { optionIdx: amount } }
+        let myBetLogs = []; // 個人詳細下注紀錄
+        let lastCheckinDate = "";
+        let checkinStreak = 0;
+
         let currentFilter = '全部';
         let markets = [];
-        let userBets = {};
         let unsubMarkets = null;
         let unsubUsers = null;
         let allUsersData = {};
+        let hallOfFameData = [];
         
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'];
         const MAX_DAILY_POSTS = 3;
@@ -293,6 +360,29 @@
             updateSeasonCountdown();
             updateCardCountdowns();
         }, 1000);
+
+        function showToast(message, type = 'info') {
+            let container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            let toast = document.createElement('div');
+            let bgColors = type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' : 
+                           type === 'warning' ? 'bg-amber-900/90 border-amber-500/50 text-amber-200' : 
+                           'bg-blue-900/90 border-blue-500/50 text-blue-200';
+            
+            toast.className = `pointer-events-auto border px-4 py-2.5 rounded-xl shadow-2xl text-xs flex items-center gap-2 transition-all duration-300 translate-x-10 opacity-0 ${bgColors}`;
+            toast.innerHTML = `<span>🔔</span> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-x-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
 
         function updateBeijingClock() {
             let clockEl = document.getElementById('beijingClock');
@@ -317,7 +407,6 @@
             clockEl.innerText = `北京時間：${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
         }
 
-        // 嚴格對齊現實季度（1-3月, 4-6月, 7-9月, 10-12月）的北京時間結算與倒數
         function updateSeasonCountdown() {
             let countdownEl = document.getElementById('seasonCountdown');
             let titleEl = document.getElementById('seasonTitle');
@@ -340,14 +429,13 @@
             parts.forEach(item => p[item.type] = item.value);
 
             let year = parseInt(p.year);
-            let month = parseInt(p.month); // 1 ~ 12
+            let month = parseInt(p.month);
             let day = parseInt(p.day);
             let hour = parseInt(p.hour);
             let minute = parseInt(p.minute);
             let second = parseInt(p.second);
 
             let bjNowTime = Date.UTC(year, month - 1, day, hour, minute, second);
-
             let seasonName = "";
             let endTimestamp = 0;
 
@@ -366,7 +454,6 @@
             }
 
             titleEl.innerText = `🌟 目前賽季：${seasonName}`;
-
             let distance = endTimestamp - bjNowTime;
 
             if (distance < 0) {
@@ -405,7 +492,7 @@
                 let closedAt = parseInt(el.getAttribute('data-closedat'));
                 if (!closedAt || isNaN(closedAt)) return;
                 
-                let expiryTime = closedAt + (3600 * 1000); // 結算後固定 1 小時清除
+                let expiryTime = closedAt + (3600 * 1000);
                 let diff = expiryTime - now;
 
                 if (diff <= 0) {
@@ -483,18 +570,36 @@
                     balance = userData.balance !== undefined ? userData.balance : 1000;
                     wins = userData.wins !== undefined ? userData.wins : 0;
                     losses = userData.losses !== undefined ? userData.losses : 0;
+                    userBets = userData.userBets || {};
+                    myBetLogs = userData.myBetLogs || [];
+                    lastCheckinDate = userData.lastCheckinDate || "";
+                    checkinStreak = userData.checkinStreak || 0;
                     currentUser = inputName;
                 } else {
                     balance = 1000;
                     wins = 0;
                     losses = 0;
+                    userBets = {};
+                    myBetLogs = [];
+                    lastCheckinDate = "";
+                    checkinStreak = 0;
                     currentUser = inputName;
-                    await window.setDoc(userDocRef, { username: currentUser, balance: balance, wins: wins, losses: losses });
+                    await window.setDoc(userDocRef, { 
+                        username: currentUser, 
+                        balance: balance, 
+                        wins: wins, 
+                        losses: losses,
+                        userBets: userBets,
+                        myBetLogs: myBetLogs,
+                        lastCheckinDate: lastCheckinDate,
+                        checkinStreak: checkinStreak
+                    });
                 }
 
                 localStorage.setItem('saved_current_user', currentUser);
                 updateAuthUI();
                 startRealtimeListeners();
+                showToast(`歡迎回來，${currentUser}！`, 'success');
             } catch (e) {
                 console.error("登入失敗: ", e);
                 alert('登入發生錯誤，請檢查網路連線。');
@@ -510,7 +615,11 @@
                     username: currentUser, 
                     balance: balance, 
                     wins: wins, 
-                    losses: losses 
+                    losses: losses,
+                    userBets: userBets,
+                    myBetLogs: myBetLogs,
+                    lastCheckinDate: lastCheckinDate,
+                    checkinStreak: checkinStreak
                 }, { merge: true });
             } catch (e) {
                 console.error("更新雲端用戶資料失敗: ", e);
@@ -523,10 +632,13 @@
             balance = 1000;
             wins = 0;
             losses = 0;
+            userBets = {};
+            myBetLogs = [];
             if (unsubMarkets) unsubMarkets();
             if (unsubUsers) unsubUsers();
             updateAuthUI();
             updateUI();
+            showToast('已成功登出', 'info');
         }
         window.logoutUser = logoutUser;
 
@@ -560,6 +672,10 @@
                         balance = d.balance !== undefined ? d.balance : 1000;
                         wins = d.wins !== undefined ? d.wins : 0;
                         losses = d.losses !== undefined ? d.losses : 0;
+                        userBets = d.userBets || {};
+                        myBetLogs = d.myBetLogs || [];
+                        lastCheckinDate = d.lastCheckinDate || "";
+                        checkinStreak = d.checkinStreak || 0;
                     }
                 } catch (e) {
                     console.error("自動恢復登入失敗: ", e);
@@ -567,8 +683,45 @@
             }
             updateAuthUI();
             startRealtimeListeners();
+            loadHallOfFameFromCloud();
         }
         window.initApp = initApp;
+
+        async function loadHallOfFameFromCloud() {
+            if (!window.db) return;
+            try {
+                let hofSnap = await window.getDocs(window.collection(window.db, "hallOfFame"));
+                hallOfFameData = [];
+                hofSnap.forEach(docSnap => hallOfFameData.push(docSnap.data()));
+                renderHallOfFame();
+            } catch (e) {
+                console.error("載入名人堂失敗: ", e);
+            }
+        }
+
+        function renderHallOfFame() {
+            let container = document.getElementById('hallOfFameList');
+            if (!container) return;
+
+            if (hallOfFameData.length === 0) {
+                container.innerHTML = `<div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center text-gray-500">歷屆賽季冠軍將在此永垂不朽...</div>`;
+                return;
+            }
+
+            let html = '';
+            hallOfFameData.forEach(item => {
+                html += `
+                    <div class="bg-gray-950 p-3 rounded-xl border border-pink-500/30 flex justify-between items-center">
+                        <div>
+                            <span class="text-pink-400 font-bold block">${item.season} 冠軍</span>
+                            <span class="text-xs text-gray-200">👑 ${item.winner}</span>
+                        </div>
+                        <span class="text-yellow-400 font-bold text-xs">${item.score} 點</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
 
         function startRealtimeListeners() {
             if (!window.db) return;
@@ -586,6 +739,10 @@
                     balance = allUsersData[currentUser].balance;
                     wins = allUsersData[currentUser].wins || 0;
                     losses = allUsersData[currentUser].losses || 0;
+                    userBets = allUsersData[currentUser].userBets || {};
+                    myBetLogs = allUsersData[currentUser].myBetLogs || [];
+                    lastCheckinDate = allUsersData[currentUser].lastCheckinDate || "";
+                    checkinStreak = allUsersData[currentUser].checkinStreak || 0;
                 }
                 renderLeaderboard();
                 updateMyTitlePreview();
@@ -627,6 +784,7 @@
                         resultIndex: null,
                         likes: 12,
                         reports: 0,
+                        imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=60",
                         comments: [
                             { user: "牛市總司令", text: "機構資金一直湧入，絕對破15萬！" },
                             { user: "保守派阿明", text: "別傻了，總體經濟沒那麼好，看空。" }
@@ -639,7 +797,7 @@
 
         function getTitleAndBadge(score) {
             if (score >= 5000) {
-                return { name: "👑 預測之神", class: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40" };
+                return { name: "👑 預測之神", class: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 god-gold-effect" };
             } else if (score >= 3000) {
                 return { name: "💎 市場先知", class: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
             } else if (score >= 1800) {
@@ -761,6 +919,17 @@
                             ${market.status === 'open' ? '進行中' : '📜 歷史已結算'}
                         </span>
                     </div>
+                `;
+
+                if (market.imageUrl) {
+                    contentHTML += `
+                        <div class="mb-4 overflow-hidden rounded-xl border border-gray-800 max-h-60 bg-gray-950 flex justify-center">
+                            <img src="${market.imageUrl}" alt="迷因圖片" class="object-cover w-full h-auto max-h-60" onerror="this.parentElement.style.display='none'">
+                        </div>
+                    `;
+                }
+
+                contentHTML += `
                     <div class="text-xs text-gray-400 mb-4 space-y-1">
                         <div class="flex items-center gap-2 flex-wrap">
                             發起人：<span class="text-blue-400 font-semibold">${market.creator}</span>
@@ -789,13 +958,15 @@
                                 <span class="text-xs text-gray-400">你已下注: ${userOptionBet} 點</span>
                             </div>
                             <div class="w-full bg-gray-800 h-2.5 rounded-full overflow-hidden mb-2">
-                                <div class="${colorClass} h-full transition-all duration-500" style="width: ${percent}%"></div>
+                                <div class="${colorClass} h-full transition-all duration-500 relative" style="width: ${percent}%">
+                                    <div class="absolute right-0 top-0 bottom-0 w-1 bg-white/60 animate-pulse"></div>
+                                </div>
                             </div>
                     `;
 
                     if (market.status === 'open') {
                         contentHTML += `
-                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition">
+                            <button onclick="bet('${market.docId || market.id}', ${idx})" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 py-2 rounded-xl text-sm font-semibold transition active:scale-[0.99]">
                                 押「${opt}」 (+100點)
                             </button>
                         `;
@@ -807,10 +978,10 @@
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800 flex flex-wrap justify-between items-center gap-2">
                         <div class="flex items-center gap-2">
-                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1">
+                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-green-400 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-1 transition active:scale-95">
                                 👍 有趣 (${market.likes})
                             </button>
-                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700">
+                            <button onclick="reportMarket('${market.docId || market.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-red-400 px-3 py-1.5 rounded-lg border border-gray-700 transition">
                                 檢舉
                             </button>
                         </div>
@@ -819,7 +990,7 @@
                 if (market.status === 'open') {
                     contentHTML += `<div class="flex flex-wrap gap-1 items-center"><span class="text-xs text-gray-500">結算：</span>`;
                     market.options.forEach((opt, idx) => {
-                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-800 hover:bg-gray-700 text-yellow-400 px-2.5 py-1 rounded border border-gray-700">「${opt}」勝出</button>`;
+                        contentHTML += `<button onclick="resolveMarket('${market.docId || market.id}', ${idx})" class="text-xs bg-gray-800 hover:bg-gray-700 text-yellow-400 px-2.5 py-1 rounded border border-gray-700 transition">「${opt}」勝出</button>`;
                     });
                     contentHTML += `</div>`;
                 } else {
@@ -892,6 +1063,7 @@
             let title = document.getElementById('newMarketTitle').value.trim();
             let deadline = document.getElementById('marketDeadline').value;
             let optionsStr = document.getElementById('marketOptions').value.trim();
+            let imageUrl = document.getElementById('marketImage').value.trim();
             let wantStake = document.getElementById('stakeBoost').checked;
 
             if (!title) { alert('請輸入預測題目！'); return; }
@@ -920,6 +1092,7 @@
                 resultIndex: null,
                 likes: 1,
                 reports: 0,
+                imageUrl: imageUrl,
                 comments: []
             };
 
@@ -931,8 +1104,9 @@
                 let currentCount = parseInt(localStorage.getItem('prediction_post_count') || '0');
                 localStorage.setItem('prediction_post_count', (currentCount + 1).toString());
 
-                alert('發起成功！題目已順利推送到雲端大廳。');
+                showToast('成功發起預測題目！', 'success');
                 document.getElementById('newMarketTitle').value = '';
+                document.getElementById('marketImage').value = '';
                 document.getElementById('stakeBoost').checked = false;
             } catch (e) {
                 console.error("發起失敗: ", e);
@@ -963,6 +1137,7 @@
                     });
                 }
                 input.value = '';
+                showToast('留言發表成功', 'success');
             } catch (e) {
                 console.error("留言失敗: ", e);
             }
@@ -996,12 +1171,12 @@
                     if (window.db && market.docId) {
                         await window.deleteDoc(window.doc(window.db, "markets", market.docId));
                     }
-                    alert('此題目已被多位用戶檢舉，系統已自動將其下架。');
+                    showToast('此題目已被檢舉下架', 'warning');
                 } else {
                     if (window.db && market.docId) {
                         await window.updateDoc(window.doc(window.db, "markets", market.docId), { reports: newReports });
                     }
-                    alert('感謝回報，管理員會盡快審查此題目。');
+                    showToast('感謝回報', 'info');
                 }
             } catch (e) {
                 console.error("檢舉失敗: ", e);
@@ -1016,10 +1191,9 @@
             }
 
             let cost = 100;
-            if (balance < cost) { alert('積分不足！點「補領積分」加值。'); return; }
+            if (balance < cost) { alert('積分不足！'); return; }
 
             balance -= cost;
-            await updateCloudUserData();
 
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
@@ -1031,12 +1205,24 @@
             if (!userBets[market.id][optionIdx]) userBets[market.id][optionIdx] = 0;
             userBets[market.id][optionIdx] += cost;
 
+            // 紀錄詳細下注日誌
+            myBetLogs.unshift({
+                title: market.title,
+                option: market.options[optionIdx],
+                amount: cost,
+                time: new Date().toLocaleString('zh-CN', { hour12: false }),
+                status: '進行中'
+            });
+
+            await updateCloudUserData();
+
             try {
                 if (window.db && market.docId) {
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         pools: updatedPools
                     });
                 }
+                showToast(`成功下注「${market.options[optionIdx]}」100點！`, 'success');
             } catch (e) {
                 console.error("下注失敗: ", e);
             }
@@ -1047,7 +1233,6 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
             
-            // 確保每次結算都會精準寫入當下的真實時間戳，並透過 Firebase 雲端永久保存，重新整理也不會重置
             let closedAt = market.closedAt || Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
@@ -1065,22 +1250,24 @@
             let userWinningBet = userBetObj[winningIdx] || 0;
             let winningPool = market.pools[winningIdx];
 
-            let payout = 0;
             let userHasParticipated = Object.keys(userBetObj).length > 0;
 
             if (userHasParticipated) {
+                let logIdx = myBetLogs.findIndex(l => l.title === market.title && l.status === '進行中');
                 if (userWinningBet > 0 && winningPool > 0) {
-                    payout = Math.round((userWinningBet / winningPool) * remainingPool);
+                    let payout = Math.round((userWinningBet / winningPool) * remainingPool);
                     balance += payout;
                     wins += 1;
-                    alert(`結算完成！你猜中了，贏得 ${payout} 點積分！`);
+                    if (logIdx !== -1) myBetLogs[logIdx].status = `贏得 +${payout}點`;
+                    showToast(`結算完成！你猜中了，贏得 ${payout} 點！`, 'success');
                 } else {
                     losses += 1;
-                    alert(`結算完成！可惜這次沒猜中。`);
+                    if (logIdx !== -1) myBetLogs[logIdx].status = `未中 (-100點)`;
+                    showToast(`結算完成！可惜這次沒猜中。`, 'warning');
                 }
                 await updateCloudUserData();
             } else {
-                alert(`結算完成！此題已移至歷史紀錄。`);
+                showToast(`結算完成！此題已移至歷史紀錄。`, 'info');
             }
 
             try {
@@ -1099,28 +1286,52 @@
         }
         window.resolveMarket = resolveMarket;
 
-        async function resetBalance() {
+        async function openCheckinModal() {
             if (!currentUser) {
-                alert('請先登入帳號才能領取補領積分！');
+                alert('請先登入帳號！');
                 return;
             }
-            balance += 1000;
+            let today = getTodayDateString();
+            let statusEl = document.getElementById('todayCheckinStatus');
+            let btnEl = document.getElementById('claimCheckinBtn');
+            let streakEl = document.getElementById('checkinStreakCount');
+
+            streakEl.innerText = `${checkinStreak} 天`;
+
+            if (lastCheckinDate === today) {
+                statusEl.innerText = "今日已完成簽到！";
+                btnEl.disabled = true;
+                btnEl.className = "w-full bg-gray-800 text-gray-500 font-semibold py-3 rounded-xl cursor-not-allowed text-sm";
+            } else {
+                statusEl.innerText = "今日尚未簽到，點擊下方領取！";
+                btnEl.disabled = false;
+                btnEl.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition text-sm shadow-md";
+            }
+
+            document.getElementById('checkinModal').classList.remove('hidden');
+            document.getElementById('checkinModal').classList.add('flex');
+        }
+        window.openCheckinModal = openCheckinModal;
+
+        function closeCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('flex');
+            document.getElementById('checkinModal').classList.add('hidden');
+        }
+        window.closeCheckinModal = closeCheckinModal;
+
+        async function claimCheckin() {
+            let today = getTodayDateString();
+            if (lastCheckinDate === today) return;
+
+            balance += 200;
+            checkinStreak += 1;
+            lastCheckinDate = today;
+
             await updateCloudUserData();
-            alert('成功補領 1000 點積分，已同步至雲端帳號！');
+            closeCheckinModal();
+            showToast('簽到成功！獲得 200 點獎勵積分！', 'success');
         }
-        window.resetBalance = resetBalance;
-
-        function openGuideModal() {
-            document.getElementById('guideModal').classList.remove('hidden');
-            document.getElementById('guideModal').classList.add('flex');
-        }
-        window.openGuideModal = openGuideModal;
-
-        function closeGuideModal() {
-            document.getElementById('guideModal').classList.remove('flex');
-            document.getElementById('guideModal').classList.add('hidden');
-        }
-        window.closeGuideModal = closeGuideModal;
+        window.claimCheckin = claimCheckin;
 
         function openProfileModal() {
             if (!currentUser) {
@@ -1138,8 +1349,31 @@
 
             let titleObj = getTitleAndBadge(balance);
             let badgeEl = document.getElementById('modalTitleBadge');
-            badgeEl.className = `text-[10px] px-2 py-0.5 rounded-full border font-bold ${titleObj.class}`;
+            badgeEl.className = `text-[10px] px-2.5 py-1 rounded-full border font-bold ${titleObj.class}`;
             badgeEl.innerText = titleObj.name;
+
+            // 渲染下注歷史明細
+            let historyContainer = document.getElementById('myBetHistoryList');
+            if (myBetLogs.length === 0) {
+                historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
+            } else {
+                let html = '';
+                myBetLogs.forEach(log => {
+                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status.includes('未中') ? 'text-red-400' : 'text-yellow-400';
+                    html += `
+                        <div class="bg-gray-900 border border-gray-800 p-2.5 rounded-lg text-xs flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-blue-300 block mb-0.5">${log.title}</span>
+                                <span class="text-gray-400">押「${log.option}」 ${log.amount}點 | ${log.time}</span>
+                            </div>
+                            <div class="${statusColor} text-right text-xs">
+                                ${log.status}
+                            </div>
+                        </div>
+                    `;
+                });
+                historyContainer.innerHTML = html;
+            }
 
             document.getElementById('profileModal').classList.remove('hidden');
             document.getElementById('profileModal').classList.add('flex');
@@ -1151,6 +1385,18 @@
             document.getElementById('profileModal').classList.add('hidden');
         }
         window.closeProfileModal = closeProfileModal;
+
+        function openGuideModal() {
+            document.getElementById('guideModal').classList.remove('hidden');
+            document.getElementById('guideModal').classList.add('flex');
+        }
+        window.openGuideModal = openGuideModal;
+
+        function closeGuideModal() {
+            document.getElementById('guideModal').classList.remove('flex');
+            document.getElementById('guideModal').classList.add('hidden');
+        }
+        window.closeGuideModal = closeGuideModal;
 
         // 初始化
         initApp();
