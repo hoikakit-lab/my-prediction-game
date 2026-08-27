@@ -171,7 +171,7 @@
                     </div>
                     <p class="text-xs text-gray-400 mb-3">賽季結束時，前三名預測之神將獲得榮譽勳章與傳說頭銜！</p>
                     <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-center">
-                        <span class="text-[10px] text-gray-500 block mb-1">距離本賽季結算剩餘時間</span>
+                        <span class="text-[10px] text-gray-500 block mb-1">距離本賽季結算剩餘時間 (北京時間)</span>
                         <span id="seasonCountdown" class="text-xs font-bold text-yellow-400 font-mono">計算中...</span>
                     </div>
                 </div>
@@ -317,18 +317,35 @@
             clockEl.innerText = `北京時間：${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
         }
 
+        // 以北京時間為基準計算賽季倒數，確保不隨意重置
         function updateSeasonCountdown() {
             let countdownEl = document.getElementById('seasonCountdown');
             if (!countdownEl) return;
 
-            let now = new Date().getTime();
-            let seasonEndStorage = localStorage.getItem('season_end_timestamp');
+            // 取得目前的北京時間物件
+            let now = new Date();
+            let bjFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                hour12: false
+            });
+            let bjDateStr = bjFormatter.format(now);
+            let bjNowTime = new Date(bjDateStr).getTime();
+
+            // 從 localStorage 取得或初始化北京時間的賽季結束日（預設 90 天）
+            let seasonEndStorage = localStorage.getItem('beijing_season_end_timestamp');
             if (!seasonEndStorage) {
-                let futureTime = now + (90 * 24 * 60 * 60 * 1000);
-                localStorage.setItem('season_end_timestamp', futureTime);
+                let futureTime = bjNowTime + (90 * 24 * 60 * 60 * 1000);
+                localStorage.setItem('beijing_season_end_timestamp', futureTime);
                 seasonEndStorage = futureTime;
             }
-            let distance = parseInt(seasonEndStorage) - now;
+            
+            let distance = parseInt(seasonEndStorage) - bjNowTime;
 
             if (distance < 0) {
                 countdownEl.innerText = "本賽季已結算，新賽季即將展開！";
@@ -362,7 +379,6 @@
                 }
             });
 
-            // 以雲端同步的 closedAt 為基準計算 1 小時倒數，重新整理也不會重置
             document.querySelectorAll('.history-expiry-timer').forEach(el => {
                 let closedAt = parseInt(el.getAttribute('data-closedat'));
                 if (!closedAt || isNaN(closedAt)) return;
@@ -562,7 +578,6 @@
 
                 snapshot.forEach((docSnap) => {
                     let data = docSnap.data();
-                    // 若已結算且超過 1 小時，自動從雲端刪除
                     if (data.status === 'closed' && data.closedAt) {
                         if (now - data.closedAt > 3600000) {
                             deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
@@ -798,7 +813,6 @@
                 }
                 contentHTML += `</div>`;
 
-                // 意見交流區
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/60 bg-gray-950/40 p-4 rounded-xl">
                         <h4 class="text-xs font-semibold text-gray-400 mb-3">💬 意見交流區 (${market.comments.length})</h4>
@@ -980,7 +994,7 @@
             }
 
             let cost = 100;
-            if (balance < cost) { alert('積分不足！點「補領積分」加值。'); return; }
+            if (balance < cost) { alert('積分不足！點·補領積分·加值。'); return; }
 
             balance -= cost;
             await updateCloudUserData();
@@ -1011,7 +1025,6 @@
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
             
-            // 記錄當下的真實毫秒時間戳記（雲端同步，重新整理也不會重置）
             let closedAt = Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
                 let totalA = a.pools.reduce((x, y) => x + y, 0) + (a.likes * 20) + (a.comments.length * 10);
@@ -1052,7 +1065,7 @@
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         status: 'closed',
                         resultIndex: winningIdx,
-                        closedAt: closedAt // 同步寫入雲端
+                        closedAt: closedAt
                     });
                 }
                 currentFilter = '歷史紀錄';
