@@ -134,9 +134,9 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (年份嚴格限制 4 位數)</label>
-                                <input type="datetime-local" id="marketDeadline" oninput="validateYearInput(this)"
-                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:border-blue-500 text-sm">
+                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (格式：YYYY-MM-DD HH:mm，嚴格 4 位數)</label>
+                                <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)"
+                                    class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm">
                             </div>
                         </div>
                         <div>
@@ -384,18 +384,31 @@
             }, 3500);
         }
 
-        // 年份即時防呆校正函數：避免使用者手動亂打或串接出超過 4 位數的年份
-        function validateYearInput(input) {
-            let val = input.value;
-            if (!val) return;
-            let parts = val.split('-');
-            if (parts.length > 0 && parts[0].length > 4) {
-                parts[0] = parts[0].slice(0, 4);
-                input.value = parts.join('-');
-                showToast('年份限制最多為四位數（例如 2026），已自動修正！', 'warning');
+        // 強制格式化截止時間文字框：嚴格把關年份最多4位數，並自動加上符號
+        function formatDeadlineInput(input) {
+            let v = input.value.replace(/\D/g, ''); // 只保留數字
+            let formatted = '';
+            
+            if (v.length > 0) {
+                // 年份最多 4 位數
+                formatted += v.substring(0, 4);
             }
+            if (v.length >= 5) {
+                formatted += '-' + v.substring(4, 6);
+            }
+            if (v.length >= 7) {
+                formatted += '-' + v.substring(6, 8);
+            }
+            if (v.length >= 9) {
+                formatted += ' ' + v.substring(8, 10);
+            }
+            if (v.length >= 11) {
+                formatted += ':' + v.substring(10, 12);
+            }
+            
+            input.value = formatted;
         }
-        window.validateYearInput = validateYearInput;
+        window.formatDeadlineInput = formatDeadlineInput;
 
         function updateBeijingClock() {
             let clockEl = document.getElementById('beijingClock');
@@ -784,7 +797,7 @@
                 }
 
                 if (markets.length === 0) {
-                    let defaultDeadline = new Date(now + 86400000).toISOString().slice(0, 16);
+                    let defaultDeadline = "2026-12-31 23:59";
                     markets.push({
                         id: 1,
                         creator: "比特幣大戶",
@@ -912,8 +925,8 @@
                 let isTop20 = globalRank < 20;
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
                 
-                let deadlineMs = market.deadline ? new Date(market.deadline).getTime() : (Date.now() + 86400000);
-                let formattedTime = market.deadline ? market.deadline.replace('T', ' ') : '無期限';
+                let deadlineMs = market.deadline ? new Date(market.deadline.replace(/-/g, '/')).getTime() : (Date.now() + 86400000);
+                let formattedTime = market.deadline || '無期限';
                 
                 let creatorScore = (allUsersData[market.creator] && allUsersData[market.creator].balance) || 1200;
                 let creatorTitle = getTitleAndBadge(creatorScore);
@@ -1074,18 +1087,17 @@
 
             let category = document.getElementById('marketCategory').value;
             let title = document.getElementById('newMarketTitle').value.trim();
-            let deadline = document.getElementById('marketDeadline').value;
+            let deadline = document.getElementById('marketDeadline').value.trim();
             let optionsStr = document.getElementById('marketOptions').value.trim();
             let imageUrl = document.getElementById('marketImage').value.trim();
             let wantStake = document.getElementById('stakeBoost').checked;
 
             if (!title) { alert('請輸入預測題目！'); return; }
-            if (!deadline) { alert('請設定預測的截止時間！'); return; }
+            if (!deadline || deadline.length < 16) { alert('請完整填寫結算截止時間（格式：YYYY-MM-DD HH:mm）！'); return; }
 
-            // 嚴格檢查年份位數，必須小於等於 4 位數（嚴防 165612 或 202622 等異常數值）
             let yearPart = deadline.split('-')[0];
-            if (!yearPart || yearPart.length > 4 || parseInt(yearPart) > 9999 || parseInt(yearPart) < 1000) {
-                alert('截止時間的年份格式錯誤！年份必須為 4 位數以內（例如 2026）。');
+            if (!yearPart || yearPart.length !== 4 || parseInt(yearPart) < 1000) {
+                alert('年份必須嚴格為 4 位數！');
                 return;
             }
 
@@ -1124,11 +1136,11 @@
                 let currentCount = parseInt(localStorage.getItem('prediction_post_count') || '0');
                 localStorage.setItem('prediction_post_count', (currentCount + 1).toString());
 
-                // 立即動態更新畫面上剩餘額度，不需按重新整理
                 updateQuotaUI();
 
                 showToast('成功發起預測題目！', 'success');
                 document.getElementById('newMarketTitle').value = '';
+                document.getElementById('marketDeadline').value = '';
                 document.getElementById('marketImage').value = '';
                 document.getElementById('stakeBoost').checked = false;
             } catch (e) {
@@ -1228,7 +1240,6 @@
             if (!userBets[market.id][optionIdx]) userBets[market.id][optionIdx] = 0;
             userBets[market.id][optionIdx] += cost;
 
-            // 紀錄詳細下注日誌
             myBetLogs.unshift({
                 title: market.title,
                 option: market.options[optionIdx],
@@ -1375,7 +1386,6 @@
             badgeEl.className = `text-[10px] px-2.5 py-1 rounded-full border font-bold ${titleObj.class}`;
             badgeEl.innerText = titleObj.name;
 
-            // 渲染下注歷史明細
             let historyContainer = document.getElementById('myBetHistoryList');
             if (myBetLogs.length === 0) {
                 historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
