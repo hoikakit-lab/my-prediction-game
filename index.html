@@ -134,9 +134,10 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (格式：YYYY-MM-DD HH:mm，嚴格 4 位數)</label>
+                                <label class="block text-xs text-gray-400 mb-1">結算截止時間 (嚴格限制：年4碼/月01-12/日01-31/時00-23/分00-59)</label>
                                 <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)"
                                     class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm">
+                                <p id="deadlineErrorTip" class="text-[10px] text-red-400 mt-1 hidden">⚠️ 格式或數值錯誤：月份須為 01-12、日期 01-31、時間 00:00-23:59</p>
                             </div>
                         </div>
                         <div>
@@ -384,7 +385,7 @@
             }, 3500);
         }
 
-        // 強制格式化截止時間文字框：嚴格把關年份最多4位數，並自動加上符號
+        // 強制格式化截止時間文字框，並在輸入時即時進行數值範圍防呆過濾
         function formatDeadlineInput(input) {
             let v = input.value.replace(/\D/g, ''); // 只保留數字
             let formatted = '';
@@ -394,19 +395,47 @@
                 formatted += v.substring(0, 4);
             }
             if (v.length >= 5) {
-                formatted += '-' + v.substring(4, 6);
+                let m = v.substring(4, 6);
+                // 限制月份最高為 12，首位若大於 1 則直接截斷或修正
+                if (parseInt(m[0]) > 1) m = '12';
+                if (parseInt(m) > 12) m = '12';
+                if (parseInt(m) === 0) m = '01';
+                formatted += '-' + m;
             }
             if (v.length >= 7) {
-                formatted += '-' + v.substring(6, 8);
+                let d = v.substring(6, 8);
+                if (parseInt(d[0]) > 3) d = '31';
+                if (parseInt(d) > 31) d = '31';
+                if (parseInt(d) === 0) d = '01';
+                formatted += '-' + d;
             }
             if (v.length >= 9) {
-                formatted += ' ' + v.substring(8, 10);
+                let h = v.substring(8, 10);
+                if (parseInt(h[0]) > 2) h = '23';
+                if (parseInt(h) > 23) h = '23';
+                formatted += ' ' + h;
             }
             if (v.length >= 11) {
-                formatted += ':' + v.substring(10, 12);
+                let min = v.substring(10, 12);
+                if (parseInt(min[0]) > 5) min = '59';
+                if (parseInt(min) > 59) min = '59';
+                formatted += ':' + min;
             }
             
             input.value = formatted;
+
+            // 即時檢查錯誤提示紅字
+            let errorTip = document.getElementById('deadlineErrorTip');
+            let regex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\s([01]\d|2[0-3]):([0-5]\d)$/;
+            if (input.value.length >= 16) {
+                if (!regex.test(input.value)) {
+                    errorTip.classList.remove('hidden');
+                } else {
+                    errorTip.classList.add('hidden');
+                }
+            } else {
+                errorTip.classList.add('hidden');
+            }
         }
         window.formatDeadlineInput = formatDeadlineInput;
 
@@ -1093,11 +1122,12 @@
             let wantStake = document.getElementById('stakeBoost').checked;
 
             if (!title) { alert('請輸入預測題目！'); return; }
-            if (!deadline || deadline.length < 16) { alert('請完整填寫結算截止時間（格式：YYYY-MM-DD HH:mm）！'); return; }
+            if (!deadline) { alert('請完整填寫結算截止時間！'); return; }
 
-            let yearPart = deadline.split('-')[0];
-            if (!yearPart || yearPart.length !== 4 || parseInt(yearPart) < 1000) {
-                alert('年份必須嚴格為 4 位數！');
+            // 嚴格正規表達式：檢核是否完全符合 YYYY-MM-DD HH:mm 且數值在合理範圍內
+            let deadlineRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\s([01]\d|2[0-3]):([0-5]\d)$/;
+            if (!deadlineRegex.test(deadline)) {
+                alert('截止時間格式或數值錯誤！月份必須為 01-12、日期 01-31、時間 00:00-23:59。');
                 return;
             }
 
@@ -1143,6 +1173,7 @@
                 document.getElementById('marketDeadline').value = '';
                 document.getElementById('marketImage').value = '';
                 document.getElementById('stakeBoost').checked = false;
+                document.getElementById('deadlineErrorTip').classList.add('hidden');
             } catch (e) {
                 console.error("發起失敗: ", e);
                 alert('發起失敗，請檢查網路連線。');
