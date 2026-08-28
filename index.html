@@ -117,7 +117,7 @@
             <div class="flex items-center gap-2.5 overflow-hidden">
                 <span class="text-base animate-bounce">📢</span>
                 <span class="text-blue-200 truncate">
-                    <b>嚴格查證、管理員人工審查</b>：平台全面升級<b>「後台管理審核 + 最終人工權威結算」</b>，確保每一道預測題目的公正性與證據有效性[cite: 1]。
+                    <b>全方位旗艦升級版</b>：支援管理員隨時提前結算、證據結算後解密、歷史24小時倒數、按讚差評與熱門排序、鍵盤Enter快捷鍵！
                 </span>
             </div>
             <button onclick="openGuideModal()" class="shrink-0 bg-blue-600/60 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-sm active:scale-95">
@@ -129,10 +129,10 @@
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/85 pb-6 gap-6">
             <div class="text-center lg:text-left">
                 <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm flex items-center justify-center lg:justify-start gap-2">
-                    🎯 知識策展預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">人工審查旗艦版✨</span>
+                    🎯 知識策展預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">旗艦升級版✨</span>
                 </h1>
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
-                    <p class="text-gray-400 text-xs md:text-sm">🔥 策展人榮譽定位：嚴謹查證、拒絕謠言，雙軌並行累積公信力評分[cite: 1]。</p>
+                    <p class="text-gray-400 text-xs md:text-sm">🔥 策展人榮譽定位：嚴謹查證、拒絕謠言，雙軌並行累積公信力評分。</p>
                     <span id="beijingClock" class="text-xs bg-gray-900/90 border border-gray-800 text-cyan-400 px-3.5 py-1.5 rounded-xl font-mono shadow-inner">
                         北京時間：載入中...
                     </span>
@@ -154,7 +154,7 @@
                 </button>
 
                 <div id="loginSection" class="glass-card px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-md">
-                    <input type="text" id="authUsernameInput" placeholder="輸入您的專屬暱稱..." 
+                    <input type="text" id="authUsernameInput" placeholder="輸入您的專屬暱稱..." onkeydown="if(event.key==='Enter') loginUser()"
                         class="bg-gray-950/80 border border-gray-700/80 rounded-lg px-3.5 py-1.5 text-xs text-gray-100 focus:outline-none focus:border-blue-500 transition">
                     <button onclick="loginUser()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition shadow-sm active:scale-95">
                         登入/註冊
@@ -203,7 +203,7 @@
                         
                         <!-- 建立新題目提示區塊 (Tooltip) -->
                         <div class="bg-blue-950/50 border border-blue-500/30 p-3.5 rounded-2xl text-xs text-blue-200 space-y-1 leading-relaxed">
-                            <p><b>🛡️ 知識策展人小提醒</b>：請務必填寫<b>「證據來源連結」</b>以利管理員與玩家查證[cite: 1]。建立需鎖定 <b>100 點押金</b>，經管理員人工審查並順利結算後將全數退還，並自動累積 <b>30% 手續費分潤</b>與公信力[cite: 1]！</p>
+                            <p><b>🛡️ 知識策展人小提醒</b>：請務必填寫<b>「證據來源連結」</b>（註：投注者下注期間無法看見證據，僅能在結算後解密檢視）。建立需鎖定 <b>100 點押金</b>，經管理員人工審查並順利結算後將全數退還，並自動累積 <b>30% 手續費分潤</b>與公信力！</p>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -211,7 +211,7 @@
                                 <label class="block text-xs text-gray-400 mb-1.5 font-medium">預測分類</label>
                                 <select id="marketCategory" class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                                     <option value="生活日常">生活日常</option>
-                                    <option value="加密貨幣">加密貨幣</option>
+                                    <option value="投資理財">投資理財</option>
                                     <option value="科技AI">科技AI</option>
                                     <option value="娛樂八卦">娛樂八卦</option>
                                     <option value="體育賽事">體育賽事</option>
@@ -219,30 +219,30 @@
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-400 mb-1.5 font-medium">結算截止時間 (年份-月份-日子 小時:分鐘)</label>
-                                <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)"
+                                <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)" onkeydown="if(event.key==='Enter') createMarket()"
                                     class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm transition">
                                 <p id="deadlineErrorTip" class="text-[11px] text-red-400 mt-1 hidden font-medium">⚠️ 格式錯誤：月份請輸入 01-12 且時間須大於當前北京時間</p>
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1.5 font-medium">預測題目</label>
-                            <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" 
+                            <input type="text" id="newMarketTitle" placeholder="例如：今天下班前老闆會不會突然改需求？" onkeydown="if(event.key==='Enter') createMarket()"
                                 class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1.5 font-medium">🔗 公開證據來源網址 (嚴格查證、拒絕謠言，下注後解鎖)</label>
-                            <input type="text" id="marketSourceUrl" placeholder="https://news.google.com/... 或官方公告連結" 
+                            <label class="block text-xs text-gray-400 mb-1.5 font-medium">🔗 公開證據來源網址 (嚴格查證，結算後才公開)</label>
+                            <input type="text" id="marketSourceUrl" placeholder="https://news.google.com/... 或官方公告連結" onkeydown="if(event.key==='Enter') createMarket()"
                                 class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 font-mono text-xs focus:outline-none focus:border-blue-500 transition">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs text-gray-400 mb-1.5 font-medium">選項設定 (用逗號隔開)</label>
-                                <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會"
+                                <input type="text" id="marketOptions" placeholder="會, 不會" value="會, 不會" onkeydown="if(event.key==='Enter') createMarket()"
                                     class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-400 mb-1.5 font-medium">迷因圖片網址 (選填)</label>
-                                <input type="text" id="marketImage" placeholder="https://example.com/image.jpg" 
+                                <input type="text" id="marketImage" placeholder="https://example.com/image.jpg" onkeydown="if(event.key==='Enter') createMarket()"
                                     class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                             </div>
                         </div>
@@ -260,9 +260,10 @@
                             <button onclick="filterCategory('全部')" class="px-3.5 py-2 rounded-xl bg-blue-600 text-white font-semibold transition shadow-sm cat-btn active:scale-95" data-cat="全部">首頁熱門榜</button>
                             <button onclick="filterCategory('預熱池')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-amber-500/40 text-amber-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="預熱池">⏳ 審核預熱池</button>
                             <button onclick="filterCategory('生活日常')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="生活日常">生活日常</button>
-                            <button onclick="filterCategory('加密貨幣')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="加密貨幣">加密貨幣</button>
+                            <button onclick="filterCategory('投資理財')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="投資理財">投資理財</button>
                             <button onclick="filterCategory('科技AI')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="科技AI">科技AI</button>
                             <button onclick="filterCategory('娛樂八卦')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="娛樂八卦">娛樂八卦</button>
+                            <button onclick="filterCategory('體育賽事')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="體育賽事">體育賽事</button>
                             <button onclick="filterCategory('歷史紀錄')" class="px-3.5 py-2 rounded-xl bg-gray-900 border border-yellow-500/30 text-yellow-400 hover:bg-gray-800 transition cat-btn active:scale-95" data-cat="歷史紀錄">📜 歷史紀錄</button>
                         </div>
                     </div>
@@ -350,7 +351,7 @@
             <div id="adminLoginView" class="space-y-4 py-6 text-center">
                 <p class="text-xs text-gray-400">請輸入後台管理員授權密碼 (預設密碼: <code class="text-yellow-400 font-mono">admin123</code>)</p>
                 <div class="flex justify-center gap-2 max-w-xs mx-auto">
-                    <input type="password" id="adminPasswordInput" placeholder="輸入管理員密碼..." 
+                    <input type="password" id="adminPasswordInput" placeholder="輸入管理員密碼..." onkeydown="if(event.key==='Enter') verifyAdminPassword()"
                         class="bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-xs text-gray-100 focus:outline-none focus:border-yellow-500 w-full">
                     <button onclick="verifyAdminPassword()" class="bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-bold px-4 py-2 rounded-xl text-xs transition active:scale-95 shadow-sm">
                         解鎖後台
@@ -365,7 +366,7 @@
                         新題審核預熱池 (<span id="adminAuditCount">0</span>)
                     </button>
                     <button onclick="switchAdminTab('settle')" id="adminTabSettle" class="px-3 py-1.5 rounded-lg bg-gray-900 text-gray-400 border border-gray-800 font-medium transition hover:text-gray-200">
-                        人工審查結算池 (<span id="adminSettleCount">0</span>)
+                        管理員結算中心 (<span id="adminSettleCount">0</span>)
                     </button>
                     <button onclick="logoutAdmin()" class="ml-auto px-3 py-1.5 rounded-lg bg-red-900/30 text-red-300 border border-red-700/40 font-medium transition">
                         登出管理員
@@ -430,23 +431,23 @@
         <div class="glass-card w-full max-w-lg p-6 md:p-7 rounded-3xl shadow-2xl relative border border-gray-800">
             <button onclick="closeGuideModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-gray-800/60 flex items-center justify-center transition">✕</button>
             <h3 class="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
-                📖 知識策展市集 - 人工審查旗艦版指引
+                📖 知識策展市集 - 旗艦升級版指引
             </h3>
             
             <div class="space-y-3.5 text-xs text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-yellow-400 text-sm mb-1">第一步：管理員嚴格審核</h4>
-                    <p class="text-gray-400">所有玩家發起的預測題目皆須經過後台管理員人工審核通過後，才會正式上架至首頁熱門榜供大眾下注[cite: 1]。</p>
+                    <h4 class="font-bold text-yellow-400 text-sm mb-1">第一步：管理員提前結算與查證</h4>
+                    <p class="text-gray-400">管理員可在後台隨時「提前結算」進行中的題目，並依據證據來源進行最終派彩。</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-cyan-400 text-sm mb-1">第二步：權威人工審查結算</h4>
-                    <p class="text-gray-400">題目截止後，管理員將根據玩家提供的證據來源（Source URL）進行最終的人工查證與權威結算，確保贏家派彩絕對公正[cite: 1]。</p>
+                    <h4 class="font-bold text-cyan-400 text-sm mb-1">第二步：證據保密與解密機制</h4>
+                    <p class="text-gray-400">所有下注者在未結算前皆無法檢視證據來源，唯有在題目正式結算後方可公開檢視。</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-amber-400 text-sm mb-1">第三步：優渥策展回報</h4>
-                    <p class="text-gray-400">出題只需 100 點固定押金（經審查順利結算後全數退還），並可獨享該題目總手續費的 <b>30% 分潤紅利</b>[cite: 1]！</p>
+                    <h4 class="font-bold text-amber-400 text-sm mb-1">第三步：歷史保留與互動排名</h4>
+                    <p class="text-gray-400">結算後的題目會在歷史記錄保留 24 小時（附帶時分秒倒數計時），並以留言與按讚差評熱度自動智慧排序。</p>
                 </div>
             </div>
 
@@ -757,7 +758,7 @@
                 let deadlineMs = parseInt(el.getAttribute('data-deadline'));
                 let diff = deadlineMs - now;
                 if (diff <= 0) {
-                    el.innerText = "⏰ 狀態：已過截止時間 (等待管理員人工審查結算)";
+                    el.innerText = "⏰ 狀態：已過截止時間 (等待管理員結算)";
                     el.className = "text-yellow-400 font-semibold market-deadline-timer";
                 } else {
                     let d = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -766,6 +767,21 @@
                     let s = Math.floor((diff % (1000 * 60)) / 1000);
                     let timeStr = d > 0 ? `${d}天 ${h}時 ${m}分 ${s}秒` : `${h}時 ${m}分 ${s}秒`;
                     el.innerText = `⏰ 距離截止：${timeStr}`;
+                }
+            });
+
+            // 歷史記錄 24 小時倒數計時更新
+            document.querySelectorAll('.history-countdown-timer').forEach(el => {
+                let closedAt = parseInt(el.getAttribute('data-closedat'));
+                let expiryTime = closedAt + (24 * 60 * 60 * 1000);
+                let diff = expiryTime - now;
+                if (diff <= 0) {
+                    el.innerText = "歷史保留已過期將移除";
+                } else {
+                    let h = Math.floor(diff / (1000 * 60 * 60));
+                    let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    let s = Math.floor((diff % (1000 * 60)) / 1000);
+                    el.innerText = `📜 歷史保留倒數：${h}時 ${m}分 ${s}秒`;
                 }
             });
         }
@@ -1078,8 +1094,9 @@
 
                 snapshot.forEach((docSnap) => {
                     let data = docSnap.data();
+                    // 歷史記錄保留 24 小時（86400000毫秒）後自動刪除
                     if (data.status === 'closed' && data.closedAt) {
-                        if (now - data.closedAt > 3600000) {
+                        if (now - data.closedAt > 86400000) {
                             deletePromises.push(window.deleteDoc(window.doc(window.db, "markets", docSnap.id)));
                             return;
                         }
@@ -1233,17 +1250,14 @@
 
             let now = Date.now();
             let sortedMarkets = [...markets].sort((a, b) => {
-                let deadlineA = a.deadline ? new Date(a.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
-                let deadlineB = b.deadline ? new Date(b.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
+                let likeA = (Array.isArray(a.likes) ? a.likes.length : 0);
+                let likeB = (Array.isArray(b.likes) ? b.likes.length : 0);
+                let commentA = (Array.isArray(a.comments) ? a.comments.length : 0);
+                let commentB = (Array.isArray(b.comments) ? b.comments.length : 0);
                 
-                let timeLeftA = deadlineA - now;
-                let timeLeftB = deadlineB - now;
-
-                let urgencyBonusA = (timeLeftA > 0 && timeLeftA < 86400000) ? 5000 : 0;
-                let urgencyBonusB = (timeLeftB > 0 && timeLeftB < 86400000) ? 5000 : 0;
-
-                let scoreA = a.pools.reduce((x, y) => x + y, 0) + ((a.likes || []).length * 30) + (a.comments.length * 15) + urgencyBonusA;
-                let scoreB = b.pools.reduce((x, y) => x + y, 0) + ((b.likes || []).length * 30) + (b.comments.length * 15) + urgencyBonusB;
+                // 優先以留言多、按讚多排序
+                let scoreA = (commentA * 15) + (likeA * 30);
+                let scoreB = (commentB * 15) + (likeB * 30);
                 
                 return scoreB - scoreA;
             });
@@ -1267,7 +1281,9 @@
                 let globalRank = sortedMarkets.findIndex(m => m.id === market.id);
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
                 let likeArr = Array.isArray(market.likes) ? market.likes : [];
+                let dislikeArr = Array.isArray(market.dislikes) ? market.dislikes : [];
                 let likeCount = likeArr.length;
+                let dislikeCount = dislikeArr.length;
                 let isPublished = market.isPublished === true;
                 
                 let deadlineMs = market.deadline ? new Date(market.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
@@ -1276,18 +1292,20 @@
                 let creatorScore = (allUsersData[market.creator] && allUsersData[market.creator].balance) || 1200;
                 let creatorTitle = getTitleAndBadge(creatorScore);
 
-                let hasUserBetThisMarket = currentUser && userBets[market.id] && Object.values(userBets[market.id]).some(val => val > 0);
-
                 let card = document.createElement('div');
                 card.className = 'glass-card glass-card-hover p-6 md:p-7 rounded-3xl shadow-xl relative';
                 
+                // 判斷是否為熱門題目 (留言+按讚熱度高)
+                let interactionScore = (market.comments.length) + likeCount;
+                let isHot = isPublished && interactionScore >= 3;
+
                 let contentHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-xs bg-gray-950 text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg font-bold">#${globalRank + 1}</span>
                             <span class="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg font-medium">${market.category}</span>
                             <h3 class="text-lg md:text-xl font-bold tracking-tight text-gray-100 flex items-center gap-1.5">
-                                ${market.title} ${isPublished && totalPool >= 1000 ? '<span class="text-amber-500 animate-pulse text-base" title="熱門熱鬥中">🔥</span>' : ''}
+                                ${market.title} ${isHot ? '<span class="text-rose-500 animate-pulse text-base" title="火熱沸騰中">🔥 火熱</span>' : ''}
                             </h3>
                         </div>
                         <span class="text-xs px-3 py-1 rounded-full font-medium ${!isPublished ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : market.status === 'open' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
@@ -1318,17 +1336,18 @@
                         </div>
                 `;
 
+                // 規定 (2): 投注者就算下注了，也不能看到證據來源，只有在結算後方可看見
                 if (market.sourceUrl) {
-                    if (hasUserBetThisMarket || market.creator === currentUser || market.status === 'closed') {
+                    if (market.status === 'closed') {
                         contentHTML += `
                             <div class="pt-1">
-                                🔗 嚴謹證據來源 (已解鎖)：<a href="${market.sourceUrl}" target="_blank" class="text-cyan-400 underline hover:text-cyan-300 font-mono">${market.sourceUrl}</a>
+                                🔗 嚴謹證據來源 (結算解密)：<a href="${market.sourceUrl}" target="_blank" class="text-cyan-400 underline hover:text-cyan-300 font-mono">${market.sourceUrl}</a>
                             </div>
                         `;
                     } else {
                         contentHTML += `
                             <div class="pt-1 text-amber-300/90 flex items-center gap-1">
-                                🔒 嚴謹證據來源：<span class="italic text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">🔒 參與下注任意選項後自動解密查看來源</span>
+                                🔒 嚴謹證據來源：<span class="italic text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">🔒 進行中保密，只有在結算後方可看見</span>
                             </div>
                         `;
                     }
@@ -1365,7 +1384,7 @@
                         } else {
                             contentHTML += `
                                 <div class="flex items-center gap-2">
-                                    <input type="number" id="betAmount_${marketKey}_${idx}" min="10" max="200" step="10" value="10" placeholder="10-200" 
+                                    <input type="number" id="betAmount_${marketKey}_${idx}" min="10" max="200" step="10" value="10" placeholder="10-200" onkeydown="if(event.key==='Enter') bet('${marketKey}', ${idx})"
                                         class="w-28 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-yellow-400 font-bold focus:outline-none focus:border-blue-500 text-center">
                                     <button onclick="bet('${marketKey}', ${idx})" class="flex-1 bg-gray-900 hover:bg-gray-800 border border-gray-700/80 text-gray-200 py-2 rounded-xl text-xs font-bold transition active:scale-95 shadow-sm flex items-center justify-center gap-1">
                                         押「${opt}」
@@ -1378,34 +1397,38 @@
                 });
                 contentHTML += `</div>`;
 
-                // 底部按鈕區
+                // 規定 (5): 所有題目均設有按讚和差評的美觀按鈕供人使用
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/80 flex flex-wrap justify-between items-center gap-3">
                         <div class="flex items-center gap-2">
-                            <button onclick="likeMarket('${market.docId || market.id}')" class="text-xs bg-gray-950 hover:bg-gray-800 text-emerald-400 px-3.5 py-2 rounded-xl border border-gray-800 flex items-center gap-1.5 transition active:scale-95 font-medium shadow-sm">
-                                👍 審核有趣 (${likeCount}/3)
+                            <button onclick="rateMarket('${market.docId || market.id}', 'like')" class="text-xs bg-gray-950 hover:bg-emerald-950/40 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-500/30 flex items-center gap-1.5 transition active:scale-95 font-medium shadow-sm">
+                                👍 按讚 (${likeCount})
+                            </button>
+                            <button onclick="rateMarket('${market.docId || market.id}', 'dislike')" class="text-xs bg-gray-950 hover:bg-rose-950/40 text-rose-400 px-3 py-2 rounded-xl border border-rose-500/30 flex items-center gap-1.5 transition active:scale-95 font-medium shadow-sm">
+                                👎 差評 (${dislikeCount})
                             </button>
                         </div>
                 `;
 
                 if (market.status === 'open') {
                     let hasExpired = deadlineMs <= now;
-                    if (hasExpired) {
+                    if (hasExpired || isAdminLoggedIn) {
                         contentHTML += `
                             <div class="bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 rounded-xl text-xs text-yellow-300 font-semibold flex items-center gap-2">
-                                <span>⏳ 已過截止時間，等待管理員後台人工審查最終結算</span>
+                                <span>${hasExpired ? '⏳ 已過截止時間' : '⚡ 管理員專屬權限'}：可隨時人工結算</span>
                                 ${isAdminLoggedIn ? `<button onclick="openAdminModalSettleTab()" class="bg-yellow-500 text-gray-950 font-bold px-2.5 py-1 rounded-lg">前往結算</button>` : ''}
                             </div>
                         `;
                     } else {
-                        contentHTML += `<div class="text-xs text-gray-400 font-medium">⏳ 進行中，時間到後由管理員人工審查結算</div>`;
+                        contentHTML += `<div class="text-xs text-gray-400 font-medium">⏳ 進行中，等待截止或管理員提前結算</div>`;
                     }
                 } else {
                     let closedTimeStr = market.closedAt ? new Date(market.closedAt).toLocaleString('zh-CN', { hour12: false }) : '剛剛';
                     let winnerText = market.resultIndex !== null ? market.options[market.resultIndex] : '作廢流標';
                     contentHTML += `
                         <div class="text-xs space-y-1 text-right">
-                            <div class="text-yellow-400 font-bold">🏁 管理員人工審查結算結果：${winnerText} (於 ${closedTimeStr})</div>
+                            <div class="text-yellow-400 font-bold">🏁 結算結果：${winnerText}</div>
+                            <div class="text-gray-400 history-countdown-timer font-mono text-[11px]" data-closedat="${market.closedAt || now}">📜 保留倒數中...</div>
                         </div>
                     `;
                 }
@@ -1438,7 +1461,7 @@
                 contentHTML += `
                         </div>
                         <div class="flex gap-2">
-                            <input type="text" id="commentInput_${market.docId || market.id}" placeholder="針對證據來源理性辯論..." 
+                            <input type="text" id="commentInput_${market.docId || market.id}" placeholder="針對證據來源理性辯論..." onkeydown="if(event.key==='Enter') addComment('${market.docId || market.id}')"
                                 class="flex-1 bg-gray-900 border border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-blue-500 transition">
                             <button onclick="addComment('${market.docId || market.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95">
                                 留言
@@ -1473,6 +1496,7 @@
                 localStorage.setItem('saved_admin_auth', 'true');
                 showToast('🔐 管理員後台解鎖成功！', 'success');
                 updateAdminModalUI();
+                updateUI();
             } else {
                 alert('管理員密碼錯誤！');
             }
@@ -1484,6 +1508,7 @@
             localStorage.removeItem('saved_admin_auth');
             showToast('已登出管理員身分', 'info');
             updateAdminModalUI();
+            updateUI();
         }
         window.logoutAdmin = logoutAdmin;
 
@@ -1528,11 +1553,8 @@
 
         function renderAdminDashboardContent() {
             let auditMarkets = markets.filter(m => m.status === 'open' && m.isPublished !== true);
-            let now = Date.now();
-            let settleMarkets = markets.filter(m => {
-                let deadlineMs = m.deadline ? new Date(m.deadline.replace(/-/g, '/')).getTime() : (now + 86400000);
-                return m.status === 'open' && m.isPublished === true && deadlineMs <= now;
-            });
+            // 規定 (1): 管理員有權提前結算題目，不用等截止時間到才能結算 -> 結算池展示所有已上架且狀態為 open 的題目
+            let settleMarkets = markets.filter(m => m.status === 'open' && m.isPublished === true);
 
             document.getElementById('adminAuditCount').innerText = auditMarkets.length;
             document.getElementById('adminSettleCount').innerText = settleMarkets.length;
@@ -1562,7 +1584,7 @@
                 }
             } else {
                 if (settleMarkets.length === 0) {
-                    html = `<div class="bg-gray-950 p-6 rounded-2xl text-center text-gray-500 text-xs">目前沒有等待人工審查結算的過期題目。</div>`;
+                    html = `<div class="bg-gray-950 p-6 rounded-2xl text-center text-gray-500 text-xs">目前沒有可以結算的題目。</div>`;
                 } else {
                     settleMarkets.forEach(m => {
                         let totalPool = m.pools.reduce((a, b) => a + b, 0);
@@ -1574,7 +1596,7 @@
                                 </div>
                                 <div class="text-cyan-400 font-mono truncate">🔗 審查證據來源: <a href="${m.sourceUrl}" target="_blank" class="underline">${m.sourceUrl}</a></div>
                                 <div class="bg-gray-900 p-3 rounded-xl border border-gray-800 space-y-1">
-                                    <span class="text-gray-300 font-bold block mb-1">⚖️ 請根據證據來源選擇最終勝出選項進行人工結算：</span>
+                                    <span class="text-gray-300 font-bold block mb-1">⚡ 管理員專屬結算 (支援隨時提前結算)：請選擇最終勝出選項：</span>
                                     <div class="flex flex-wrap gap-2 pt-1">
                         `;
                         m.options.forEach((opt, idx) => {
@@ -1642,10 +1664,7 @@
                 } catch(e) { console.error("發放策展人獎勵失敗:", e); }
             }
 
-            // 更新所有參與用戶的結算彩池派彩（此處簡易更新當前在線用戶與資料庫）
             let winningPool = market.pools[winningIdx];
-
-            // 結算當前用戶（如果剛好是他在線操作）
             let userBetObj = userBets[market.id] || {};
             let userWinningBet = userBetObj[winningIdx] || 0;
             let userHasParticipated = Object.keys(userBetObj).length > 0;
@@ -1670,7 +1689,7 @@
                     resultIndex: winningIdx,
                     closedAt: Date.now()
                 });
-                showToast(`🏁 管理員人工審查結算完成！勝出選項：${market.options[winningIdx]}`, 'success');
+                showToast(`🏁 管理員結算完成！勝出選項：${market.options[winningIdx]}`, 'success');
                 closeAdminModal();
                 updateUI();
             } catch (e) {
@@ -1865,9 +1884,10 @@
                 options: options,
                 pools: new Array(options.length).fill(0),
                 status: 'open',
-                isPublished: false, // 預設未審核上架，等待管理員通過
+                isPublished: false,
                 resultIndex: null,
                 likes: [],
+                dislikes: [],
                 imageUrl: imageUrl,
                 comments: []
             };
@@ -1920,32 +1940,42 @@
         }
         window.addComment = addComment;
 
-        async function likeMarket(identifier) {
+        // 規定 (5): 所有題目均設有按讚和差評的美觀按鈕供人使用
+        async function rateMarket(identifier, type) {
             if (!currentUser) {
-                alert('請先登入帳號才能評分預熱池題目！');
+                alert('請先登入帳號才能進行按讚或差評！');
                 return;
             }
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
             let likeArr = Array.isArray(market.likes) ? [...market.likes] : [];
-            if (likeArr.includes(currentUser)) {
-                showToast('您已經幫此題目投過讚了！', 'warning');
-                return;
-            }
+            let dislikeArr = Array.isArray(market.dislikes) ? [...market.dislikes] : [];
 
-            likeArr.push(currentUser);
+            // 移除舊的投票記錄
+            likeArr = likeArr.filter(u => u !== currentUser);
+            dislikeArr = dislikeArr.filter(u => u !== currentUser);
+
+            if (type === 'like') {
+                likeArr.push(currentUser);
+                showToast('👍 按讚成功！', 'success');
+            } else {
+                dislikeArr.push(currentUser);
+                showToast('👎 已給予差評', 'warning');
+            }
 
             try {
                 if (window.db && market.docId) {
-                    await window.updateDoc(window.doc(window.db, "markets", market.docId), { likes: likeArr });
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        likes: likeArr,
+                        dislikes: dislikeArr
+                    });
                 }
-                showToast(`👍 投票成功！目前 ${likeArr.length} 票支援`, 'success');
             } catch (e) {
-                console.error("按讚失敗: ", e);
+                console.error("評分失敗: ", e);
             }
         }
-        window.likeMarket = likeMarket;
+        window.rateMarket = rateMarket;
 
         async function bet(identifier, optionIdx) {
             if (!currentUser) {
@@ -1973,87 +2003,75 @@
                 return;
             }
             if (cost % 10 !== 0) {
-                alert('下注金額必須為 10 的倍數（如：10, 20, 50, 200）！');
+                alert('下注金額須為 10 的倍數！');
                 return;
             }
+
             if (balance < cost) {
-                alert(`您的剩餘積分不足 (${balance} 點)，無法下注 ${cost} 點！`);
+                alert('您的積分餘額不足！');
                 return;
             }
 
             balance -= cost;
-            let updatedPools = [...market.pools];
-            updatedPools[optionIdx] += cost;
+            market.pools[optionIdx] += cost;
 
             if (!userBets[market.id]) userBets[market.id] = {};
-            if (!userBets[market.id][optionIdx]) userBets[market.id][optionIdx] = 0;
-            userBets[market.id][optionIdx] += cost;
+            userBets[market.id][optionIdx] = (userBets[market.id][optionIdx] || 0) + cost;
 
-            myBetLogs.unshift({
+            myBetLogs.push({
                 title: market.title,
                 option: market.options[optionIdx],
-                amount: cost,
-                time: new Date().toLocaleString('zh-CN', { hour12: false }),
+                cost: cost,
                 status: '進行中'
             });
 
-            updateUI();
-
             try {
-                await updateCloudUserData();
                 if (window.db && market.docId) {
+                    await updateCloudUserData();
                     await window.updateDoc(window.doc(window.db, "markets", market.docId), {
-                        pools: updatedPools
+                        pools: market.pools
                     });
                 }
-                showToast(`成功下注「${market.options[optionIdx]}」${cost} 點！嚴謹證據來源已解鎖 🔓`, 'success');
+                showToast(`成功押注 ${cost} 點於「${market.options[optionIdx]}」！`, 'success');
+                updateUI();
             } catch (e) {
-                console.error("下注同步失敗: ", e);
-                showToast('下注同步發生錯誤，請檢查網路。', 'warning');
+                console.error("下注失敗: ", e);
+                alert('下注發生錯誤，請檢查網路。');
             }
         }
         window.bet = bet;
 
-        // ------------------ 彈窗 Modal 控制邏輯 ------------------
         function openContactModal() {
             document.getElementById('contactModal').classList.remove('hidden');
             document.getElementById('contactModal').classList.add('flex');
         }
         window.openContactModal = openContactModal;
-
         function closeContactModal() {
             document.getElementById('contactModal').classList.remove('flex');
             document.getElementById('contactModal').classList.add('hidden');
         }
         window.closeContactModal = closeContactModal;
 
-        async function openCheckinModal() {
-            if (!currentUser) {
-                alert('請先登入帳號！');
-                return;
-            }
+        function openCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('hidden');
+            document.getElementById('checkinModal').classList.add('flex');
             let today = getTodayDateString();
+            let streakEl = document.getElementById('checkinStreakCount');
             let statusEl = document.getElementById('todayCheckinStatus');
             let btnEl = document.getElementById('claimCheckinBtn');
-            let streakEl = document.getElementById('checkinStreakCount');
 
             streakEl.innerText = `${checkinStreak} 天`;
-
             if (lastCheckinDate === today) {
-                statusEl.innerText = "今日已完成簽到！";
+                statusEl.innerText = "今日已完成簽到";
                 btnEl.disabled = true;
                 btnEl.className = "w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm";
             } else {
-                statusEl.innerText = "今日尚未簽到，點擊下方領取！";
+                statusEl.innerText = "今日尚未簽到";
                 btnEl.disabled = false;
-                btnEl.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]";
+                btnEl.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg active:scale-[0.99]";
             }
-
-            document.getElementById('checkinModal').classList.remove('hidden');
-            document.getElementById('checkinModal').classList.add('flex');
         }
         window.openCheckinModal = openCheckinModal;
-
         function closeCheckinModal() {
             document.getElementById('checkinModal').classList.remove('flex');
             document.getElementById('checkinModal').classList.add('hidden');
@@ -2061,32 +2079,50 @@
         window.closeCheckinModal = closeCheckinModal;
 
         async function claimCheckin() {
+            if (!currentUser) return;
             let today = getTodayDateString();
             if (lastCheckinDate === today) return;
 
-            balance += 200;
-            checkinStreak += 1;
+            let yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            if (lastCheckinDate === yesterday) {
+                checkinStreak += 1;
+            } else {
+                checkinStreak = 1;
+            }
+
             lastCheckinDate = today;
+            let reward = 200 + (checkinStreak > 1 ? 50 : 0);
+            balance += reward;
 
             await updateCloudUserData();
+            showToast(`📅 簽到成功！獲得獎勵 ${reward} 點`, 'success');
             closeCheckinModal();
-            showToast('簽到成功！獲得 200 點獎勵積分！', 'success');
+            updateUI();
         }
         window.claimCheckin = claimCheckin;
 
+        function openGuideModal() {
+            document.getElementById('guideModal').classList.remove('hidden');
+            document.getElementById('guideModal').classList.add('flex');
+        }
+        window.openGuideModal = openGuideModal;
+        function closeGuideModal() {
+            document.getElementById('guideModal').classList.remove('flex');
+            document.getElementById('guideModal').classList.add('hidden');
+        }
+        window.closeGuideModal = closeGuideModal;
+
         function openProfileModal() {
-            if (!currentUser) {
-                alert('請先登入！');
-                return;
-            }
-            document.getElementById('modalUsername').innerText = currentUser;
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileModal').classList.add('flex');
+
+            document.getElementById('modalUsername').innerText = currentUser || '未登入';
             document.getElementById('modalBalance').innerText = balance;
+            let total = wins + losses;
+            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
+            document.getElementById('modalWinRate').innerText = `${rate}%`;
             document.getElementById('modalWins').innerText = `${wins} 勝`;
             document.getElementById('modalLosses').innerText = `${losses} 敗`;
-
-            let totalGames = wins + losses;
-            let winRate = totalGames === 0 ? 0 : Math.round((wins / totalGames) * 100);
-            document.getElementById('modalWinRate').innerText = `${winRate}%`;
 
             let titleObj = getTitleAndBadge(balance);
             let badgeEl = document.getElementById('modalTitleBadge');
@@ -2098,47 +2134,27 @@
                 historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
             } else {
                 let html = '';
-                myBetLogs.forEach(log => {
-                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status.includes('未中') ? 'text-rose-400 font-medium' : 'text-yellow-400 font-medium';
+                myBetLogs.slice().reverse().forEach(log => {
+                    let statusColor = log.status.includes('贏') ? 'text-emerald-400' : log.status.includes('未') ? 'text-rose-400' : 'text-yellow-400';
                     html += `
-                        <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center shadow-sm">
+                        <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center shadow-sm">
                             <div>
-                                <span class="font-bold text-blue-300 block mb-1">${log.title}</span>
-                                <span class="text-gray-400 font-medium">押「${log.option}」 ${log.amount}點 | ${log.time}</span>
+                                <span class="font-bold text-gray-100 block mb-0.5">${log.title}</span>
+                                <span class="text-gray-400">押注: <b class="text-blue-400">${log.option}</b> (${log.cost}點)</span>
                             </div>
-                            <div class="${statusColor} text-right text-xs">
-                                ${log.status}
-                            </div>
+                            <span class="font-bold ${statusColor}">${log.status}</span>
                         </div>
                     `;
                 });
                 historyContainer.innerHTML = html;
             }
-
-            document.getElementById('profileModal').classList.remove('hidden');
-            document.getElementById('profileModal').classList.add('flex');
         }
         window.openProfileModal = openProfileModal;
-
         function closeProfileModal() {
             document.getElementById('profileModal').classList.remove('flex');
             document.getElementById('profileModal').classList.add('hidden');
         }
         window.closeProfileModal = closeProfileModal;
-
-        function openGuideModal() {
-            document.getElementById('guideModal').classList.remove('hidden');
-            document.getElementById('guideModal').classList.add('flex');
-        }
-        window.openGuideModal = openGuideModal;
-
-        function closeGuideModal() {
-            document.getElementById('guideModal').classList.remove('flex');
-            document.getElementById('guideModal').classList.add('hidden');
-        }
-        window.closeGuideModal = closeGuideModal;
-
-        initApp();
     </script>
 </body>
 </html>
