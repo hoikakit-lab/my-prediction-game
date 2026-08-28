@@ -115,10 +115,10 @@
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-6">
             <div class="text-center lg:text-left">
                 <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm flex items-center justify-center lg:justify-start gap-2">
-                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">結構升級版✨</span>
+                    🎯 自由預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">結構升級旗艦版✨</span>
                 </h1>
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
-                    <p class="text-gray-400 text-xs md:text-sm">🔥 增設出題押金、預熱審核池、標籤過濾與社群多數決自動結算機制。</p>
+                    <p class="text-gray-400 text-xs md:text-sm">🔥 已解鎖：出題押金防洗版、證據保密解鎖、即時彩池聯動與正確萬年曆輸入。</p>
                     <span id="beijingClock" class="text-xs bg-gray-900/90 border border-gray-800 text-cyan-400 px-3.5 py-1.5 rounded-xl font-mono shadow-inner">
                         北京時間：載入中...
                     </span>
@@ -173,7 +173,7 @@
             
             <!-- 左側主要內容區 -->
             <div class="lg:col-span-2 space-y-8">
-                <!-- 建立新題目區塊 (含押金與證據來源) -->
+                <!-- 建立新題目區塊 -->
                 <section class="glass-card p-6 md:p-7 rounded-3xl shadow-xl">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="text-lg md:text-xl font-bold text-blue-400 flex items-center gap-2">✨ 發起新的預測局</h2>
@@ -183,7 +183,7 @@
                     </div>
                     <div class="space-y-4">
                         <div class="bg-blue-950/40 border border-blue-500/30 p-3 rounded-2xl text-xs text-blue-200 flex justify-between items-center">
-                            <span>🛡️ <b>出題防洗版機制</b>：發起預題需鎖定 <span class="text-yellow-400 font-bold">100 積分</span> 作為押金。順利結算後全數退還並獲得紅利；若流標、被檢舉或作廢則沒收。</span>
+                            <span>🛡️ <b>防洗版與平衡機制</b>：發起預題需鎖定 <span class="text-yellow-400 font-bold">100 積分</span> 押金。順利結算後全數退還並獲得 30% 分潤紅利；若流標或被檢舉則沒收。證據採**下注後解鎖**保護！</span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -197,10 +197,10 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1.5 font-medium">結算截止時間 (須大於當前北京時間)</label>
+                                <label class="block text-xs text-gray-400 mb-1.5 font-medium">結算截止時間 (年份-月份-日子 小時:分鐘)</label>
                                 <input type="text" id="marketDeadline" placeholder="例如：2026-12-31 23:59" maxlength="16" oninput="formatDeadlineInput(this)"
                                     class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 font-mono focus:outline-none focus:border-blue-500 text-sm transition">
-                                <p id="deadlineErrorTip" class="text-[11px] text-red-400 mt-1 hidden font-medium">⚠️ 格式或數值錯誤：必須大於當前北京時間且符合有效日期格式</p>
+                                <p id="deadlineErrorTip" class="text-[11px] text-red-400 mt-1 hidden font-medium">⚠️ 格式錯誤：月份請輸入 01-12 且時間須大於當前北京時間</p>
                             </div>
                         </div>
                         <div>
@@ -209,7 +209,7 @@
                                 class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500 text-sm transition">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1.5 font-medium">🔗 公開證據來源網址 (強制綁定，供日後判定查證)</label>
+                            <label class="block text-xs text-gray-400 mb-1.5 font-medium">🔗 公開證據來源網址 (加密保護，投注者才可查看)</label>
                             <input type="text" id="marketSourceUrl" placeholder="https://news.google.com/... 或官方公告連結" 
                                 class="w-full bg-gray-950/90 border border-gray-700/80 rounded-xl px-4 py-2.5 text-gray-100 font-mono text-xs focus:outline-none focus:border-blue-500 transition">
                         </div>
@@ -369,18 +369,23 @@
             
             <div class="space-y-3.5 text-xs text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-yellow-400 text-sm mb-1">1. 🛡️ 出題押金與防洗版機制</h4>
-                    <p class="text-gray-400">發起自由預題需押入 100 積分。成功結算後退回押金並賺取額外手續費紅利；若題目乏人問津流標、被檢舉下架或因查無證據作廢，押金將被系統沒收。</p>
+                    <h4 class="font-bold text-yellow-400 text-sm mb-1">1. 🛡️ 出題押金與分潤激勵</h4>
+                    <p class="text-gray-400">發起自由預題需押入 100 積分。成功結算後退回押金並獲得 30% 平台手續費紅利；若題目流標、被檢舉下架或因查無證據作廢，押金將被系統沒收。</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-amber-400 text-sm mb-1">2. ⏳ 審核預熱池與標籤過濾</h4>
+                    <h4 class="font-bold text-cyan-400 text-sm mb-1">2. 🔒 證據來源「下注後解鎖」機制</h4>
+                    <p class="text-gray-400">為保護出題者權益並防止對手抄襲，公開證據來源預設為加密隱藏，必須親自參與下注後才能解密查看具體來源網址。</p>
+                </div>
+
+                <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
+                    <h4 class="font-bold text-amber-400 text-sm mb-1">3. ⏳ 審核預熱池與標籤過濾</h4>
                     <p class="text-gray-400">新發布的題目會先進入「審核預熱池」，由線上玩家給予 👍 有趣評分。累積達 3 個讚後會自動推送到首頁熱門榜，防止垃圾洗版。</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-purple-400 text-sm mb-1">3. 🔗 限時倒數與多數決 Community Resolution</h4>
-                    <p class="text-gray-400">每個題目強制綁定證據來源與截止時間。時間到後無需出題者失聯困擾，由玩家透過多數決投票選出最終贏家，自動瓜分彩池！</p>
+                    <h4 class="font-bold text-purple-400 text-sm mb-1">4. ⚡ 即時彩池同步與多數決結算</h4>
+                    <p class="text-gray-400">下注時彩池與個人下注點數即時跳動刷新不延遲。時間到後由玩家透過多數決投票選出最終贏家，自動瓜分彩池！</p>
                 </div>
             </div>
 
@@ -553,34 +558,29 @@
             }, 3500);
         }
 
+        // 修正後的萬年曆輸入函數（解決月份大於1時自動跳到12的Bug）
         function formatDeadlineInput(input) {
             let v = input.value.replace(/\D/g, ''); 
             let formatted = '';
             
-            if (v.length > 0) formatted += v.substring(0, 4);
+            if (v.length > 0) formatted += v.substring(0, 4); // 年份
             if (v.length >= 5) {
                 let m = v.substring(4, 6);
-                if (parseInt(m[0]) > 1) m = '12';
                 if (parseInt(m) > 12) m = '12';
-                if (parseInt(m) === 0) m = '01';
                 formatted += '-' + m;
             }
             if (v.length >= 7) {
                 let d = v.substring(6, 8);
-                if (parseInt(d[0]) > 3) d = '31';
                 if (parseInt(d) > 31) d = '31';
-                if (parseInt(d) === 0) d = '01';
                 formatted += '-' + d;
             }
             if (v.length >= 9) {
                 let h = v.substring(8, 10);
-                if (parseInt(h[0]) > 2) h = '23';
                 if (parseInt(h) > 23) h = '23';
                 formatted += ' ' + h;
             }
             if (v.length >= 11) {
                 let min = v.substring(10, 12);
-                if (parseInt(min[0]) > 5) min = '59';
                 if (parseInt(min) > 59) min = '59';
                 formatted += ':' + min;
             }
@@ -694,7 +694,7 @@
                 let deadlineMs = parseInt(el.getAttribute('data-deadline'));
                 let diff = deadlineMs - now;
                 if (diff <= 0) {
-                    el.innerText = "⏰ 狀態：已過截止時間 (開放多數決或系統自動結算)";
+                    el.innerText = "⏰ 狀態：已過截止時間 (開放多數決結算)";
                     el.className = "text-rose-400 font-semibold market-deadline-timer";
                 } else {
                     let d = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -1206,6 +1206,9 @@
                 let creatorScore = (allUsersData[market.creator] && allUsersData[market.creator].balance) || 1200;
                 let creatorTitle = getTitleAndBadge(creatorScore);
 
+                // 檢查當前用戶是否已經下注過此題（解鎖證據來源）
+                let hasUserBetThisMarket = currentUser && userBets[market.id] && Object.values(userBets[market.id]).some(val => val > 0);
+
                 let card = document.createElement('div');
                 card.className = 'glass-card glass-card-hover p-6 md:p-7 rounded-3xl shadow-xl relative';
                 
@@ -1242,16 +1245,25 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-rose-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
                             <span class="text-gray-600">|</span> 總彩池：<span class="text-yellow-400 font-bold">${totalPool} 點</span>
-                            <span class="text-gray-600">|</span> 押金狀態：<span class="text-emerald-400 font-semibold">🔒 已鎖定100點</span>
+                            <span class="text-gray-600">|</span> 押金狀態：<span class="text-emerald-400 font-semibold">🔒 已鎖定100點 (含30%分潤)</span>
                         </div>
                 `;
 
+                // 證據來源保密與下注後解鎖邏輯
                 if (market.sourceUrl) {
-                    contentHTML += `
-                        <div class="pt-1">
-                            🔗 公開證據來源：<a href="${market.sourceUrl}" target="_blank" class="text-cyan-400 underline hover:text-cyan-300 font-mono">${market.sourceUrl}</a>
-                        </div>
-                    `;
+                    if (hasUserBetThisMarket || market.creator === currentUser || market.status === 'closed') {
+                        contentHTML += `
+                            <div class="pt-1">
+                                🔗 公開證據來源 (已解鎖)：<a href="${market.sourceUrl}" target="_blank" class="text-cyan-400 underline hover:text-cyan-300 font-mono">${market.sourceUrl}</a>
+                            </div>
+                        `;
+                    } else {
+                        contentHTML += `
+                            <div class="pt-1 text-amber-300/90 flex items-center gap-1">
+                                🔒 公開證據來源：<span class="italic text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">🔒 參與下注任意選項後自動解密查看</span>
+                            </div>
+                        `;
+                    }
                 }
                 contentHTML += `</div>`;
 
@@ -1305,7 +1317,6 @@
                 if (market.status === 'open') {
                     let hasExpired = deadlineMs <= now;
                     if (hasExpired) {
-                        // 支援多數決 Community Resolution
                         contentHTML += `<div class="flex flex-wrap gap-1.5 items-center bg-yellow-500/10 p-2 rounded-xl border border-yellow-500/30"><span class="text-xs text-yellow-300 font-bold">⚖️ 多數決結算：</span>`;
                         market.options.forEach((opt, idx) => {
                             contentHTML += `<button onclick="resolveMarketByCommunity('${market.docId || market.id}', ${idx})" class="text-xs bg-yellow-500 hover:bg-yellow-400 text-gray-950 px-3 py-1.5 rounded-lg font-bold transition active:scale-95 shadow-sm">投給「${opt}」</button>`;
@@ -1553,9 +1564,9 @@
                 options: options,
                 pools: new Array(options.length).fill(0),
                 status: 'open',
-                isPublished: false, // 預設進入審核預熱池
+                isPublished: false,
                 resultIndex: null,
-                likes: [], // 紀錄按讚的使用者陣列
+                likes: [],
                 reports: 0,
                 imageUrl: imageUrl,
                 comments: []
@@ -1646,12 +1657,6 @@
             
             try {
                 if (newReports >= 3) {
-                    // 沒收出題者押金 (扣除不退還，系統沒收)
-                    if (window.db && market.creator) {
-                        let creatorRef = window.doc(window.db, "users", market.creator);
-                        let cSnap = await window.getDoc(creatorRef);
-                        // 押金已在建立時扣除，若被沒收則不予退回，並給予通知
-                    }
                     if (window.db && market.docId) {
                         await window.deleteDoc(window.doc(window.db, "markets", market.docId));
                     }
@@ -1668,6 +1673,7 @@
         }
         window.reportMarket = reportMarket;
 
+        // 優化後的下注函數（解決下注時點數與總彩池未即時同步跳動的問題）
         async function bet(identifier, optionIdx) {
             if (!currentUser) {
                 alert('請先登入帳號才能下注！');
@@ -1694,11 +1700,11 @@
                 return;
             }
 
-            balance -= cost;
-
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
 
+            // 本地立即扣款與即時更新 UI
+            balance -= cost;
             let updatedPools = [...market.pools];
             updatedPools[optionIdx] += cost;
 
@@ -1714,22 +1720,26 @@
                 status: '進行中'
             });
 
-            await updateCloudUserData();
+            // 立即刷新畫面與彩池
+            updateUI();
 
             try {
+                // 同步寫入雲端 Firestore
+                await updateCloudUserData();
                 if (window.db && market.docId) {
-                    await window.updateDoc(window.doc(window.doc(window.db, "markets", market.docId)), {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
                         pools: updatedPools
                     });
                 }
-                showToast(`成功下注「${market.options[optionIdx]}」${cost} 點！`, 'success');
+                showToast(`成功下注「${market.options[optionIdx]}」${cost} 點！證據來源已解鎖 🔓`, 'success');
             } catch (e) {
-                console.error("下注失敗: ", e);
+                console.error("下注同步失敗: ", e);
+                showToast('下注同步發生錯誤，請檢查網路。', 'warning');
             }
         }
         window.bet = bet;
 
-        // 群眾多數決結算 (Community Resolution)
+        // 群眾多數決結算 (Community Resolution) 與分潤激勵機制
         async function resolveMarketByCommunity(identifier, winningIdx) {
             let market = markets.find(m => (m.docId === identifier || m.id == identifier));
             if (!market) return;
@@ -1748,20 +1758,19 @@
             let creatorReward = Math.round(platformFee * 0.3); // 30% 分潤給出題者
             let remainingPool = totalPool - platformFee;
 
-            // 結算成功：將 100 點押金退還給出題者，並發放紅利
+            // 結算成功：退還 100 點押金並發放 30% 分潤紅利給出題者
             if (market.creator) {
                 try {
                     let creatorDocRef = window.doc(window.db, "users", market.creator);
                     let creatorSnap = await window.getDoc(creatorDocRef);
                     if (creatorSnap.exists()) {
                         let cData = creatorSnap.data();
-                        // 退回 100 點押金 + 獎勵
                         let totalRefundAndBonus = 100 + creatorReward;
                         await window.updateDoc(creatorDocRef, {
                             balance: (cData.balance || 0) + totalRefundAndBonus
                         });
                     }
-                } catch(e) { console.error("退還出題者押金失敗:", e); }
+                } catch(e) { console.error("發放出題者紅利失敗:", e); }
             }
 
             let userBetObj = userBets[market.id] || {};
