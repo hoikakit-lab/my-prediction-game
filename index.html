@@ -117,7 +117,7 @@
             <div class="flex items-center gap-2.5 overflow-hidden">
                 <span class="text-base animate-bounce">📢</span>
                 <span class="text-blue-200 truncate">
-                    <b>全方位旗艦升級版</b>：支援管理員隨時提前結算、證據結算後解密、歷史24小時倒數、按讚差評與熱門排序、鍵盤Enter快捷鍵！
+                    <b>全方位旗艦升級版</b>：已完成結算後自動隱藏截止時間、帳戶7天歷史信件箱提醒、熱門榜智慧動態遞補排序！
                 </span>
             </div>
             <button onclick="openGuideModal()" class="shrink-0 bg-blue-600/60 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-sm active:scale-95">
@@ -172,15 +172,22 @@
                         </div>
                     </div>
                     <div class="flex flex-col gap-1.5 border-l border-gray-800 pl-3">
-                        <button onclick="openCheckinModal()" class="bg-emerald-900/40 hover:bg-emerald-900/70 text-emerald-200 text-[10px] px-3 py-1 rounded-lg transition border border-emerald-700/50 flex items-center gap-1 font-medium active:scale-95">
-                            📅 每日簽到
-                        </button>
-                        <button onclick="openProfileModal()" class="bg-purple-900/40 hover:bg-purple-900/70 text-purple-200 text-[10px] px-3 py-1 rounded-lg transition border border-purple-700/50 font-medium active:scale-95">
-                            📊 個人戰績
-                        </button>
-                        <button onclick="logoutUser()" class="bg-red-900/30 hover:bg-red-900/55 text-red-300 text-[10px] px-3 py-1 rounded-lg transition border border-red-700/30 font-medium active:scale-95">
-                            登出
-                        </button>
+                        <div class="flex gap-1.5">
+                            <button onclick="openCheckinModal()" class="bg-emerald-900/40 hover:bg-emerald-900/70 text-emerald-200 text-[10px] px-2.5 py-1 rounded-lg transition border border-emerald-700/50 flex items-center gap-1 font-medium active:scale-95">
+                                📅 簽到
+                            </button>
+                            <button onclick="openInboxModal()" class="bg-indigo-900/40 hover:bg-indigo-900/70 text-indigo-200 text-[10px] px-2.5 py-1 rounded-lg transition border border-indigo-700/50 font-medium active:scale-95 relative">
+                                📩 信件箱 <span id="inboxBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[9px] px-1 font-bold">0</span>
+                            </button>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="openProfileModal()" class="bg-purple-900/40 hover:bg-purple-900/70 text-purple-200 text-[10px] px-2.5 py-1 rounded-lg transition border border-purple-700/50 font-medium active:scale-95 flex-1 text-center">
+                                📊 戰績
+                            </button>
+                            <button onclick="logoutUser()" class="bg-red-900/30 hover:bg-red-900/55 text-red-300 text-[10px] px-2.5 py-1 rounded-lg transition border border-red-700/30 font-medium active:scale-95">
+                                登出
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -426,6 +433,25 @@
         </div>
     </div>
 
+    <!-- 帳戶信件箱 Modal 彈窗 (保留7天紀錄) -->
+    <div id="inboxModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-card w-full max-w-lg p-6 md:p-7 rounded-3xl shadow-2xl relative max-h-[85vh] flex flex-col border border-indigo-500/40">
+            <button onclick="closeInboxModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-gray-800/60 flex items-center justify-center transition">✕</button>
+            <h3 class="text-xl font-bold text-indigo-400 mb-2 flex items-center gap-2">
+                📩 帳戶專屬信件箱
+            </h3>
+            <p class="text-xs text-gray-400 mb-4">記錄您近 7 天內的下注通知、派彩結果與管理員結算提醒。</p>
+            
+            <div id="inboxListContainer" class="space-y-3 overflow-y-auto pr-1 flex-1">
+                <!-- 動態載入信件內容 -->
+            </div>
+
+            <button onclick="closeInboxModal()" class="w-full mt-5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md active:scale-[0.99]">
+                關閉信件箱
+            </button>
+        </div>
+    </div>
+
     <!-- 玩法介紹 Modal 彈窗（升級版指引） -->
     <div id="guideModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="glass-card w-full max-w-lg p-6 md:p-7 rounded-3xl shadow-2xl relative border border-gray-800">
@@ -436,22 +462,22 @@
             
             <div class="space-y-3.5 text-xs text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-yellow-400 text-sm mb-1">第一步：管理員提前結算與查證</h4>
-                    <p class="text-gray-400">管理員可在後台隨時「提前結算」進行中的題目，並依據證據來源進行最終派彩。</p>
+                    <h4 class="font-bold text-yellow-400 text-sm mb-1">第一步：結算後自動隱藏截止時間</h4>
+                    <p class="text-gray-400">當題目結算完畢後，畫面將不再顯示距離截止時間倒數，取而代之的是結算結果與 24 小時歷史保留倒數。</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-cyan-400 text-sm mb-1">第二步：證據保密與解密機制</h4>
-                    <p class="text-gray-400">所有下注者在未結算前皆無法檢視證據來源，唯有在題目正式結算後方可公開檢視。</p>
+                    <h4 class="font-bold text-indigo-400 text-sm mb-1">第二步：7天帳戶信件箱通知</h4>
+                    <p class="text-gray-400">各帳戶專屬信件箱會自動記錄下注金額與結算派彩結果，所有紀錄均保留 7 天供隨時檢索。</p>
                 </div>
 
                 <div class="bg-gray-950/80 p-4 rounded-2xl border border-gray-800/80">
-                    <h4 class="font-bold text-amber-400 text-sm mb-1">第三步：歷史保留與互動排名</h4>
-                    <p class="text-gray-400">結算後的題目會在歷史記錄保留 24 小時（附帶時分秒倒數計時），並以留言與按讚差評熱度自動智慧排序。</p>
+                    <h4 class="font-bold text-purple-400 text-sm mb-1">第三步：熱門榜智慧動態遞補</h4>
+                    <p class="text-gray-400">當熱門榜前方的題目結算結束移入歷史後，後方的題目會自動智慧遞補排序（例如 2、3 號自動變為 1、2 號）。</p>
                 </div>
             </div>
 
-            <button onclick="closeGuideModal()" class="w-full mt-5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md active:scale-[0.99]">
+            <button onclick="closeGuideModal()" class="w-full mt-5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-cyan-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md active:scale-[0.99]">
                 了解了，馬上開始玩！
             </button>
         </div>
@@ -560,6 +586,7 @@
         let losses = 0;
         let userBets = {}; 
         let myBetLogs = []; 
+        let inboxMessages = []; // (2) 7天內信件箱紀錄
         let lastCheckinDate = "";
         let checkinStreak = 0;
         let lastWheelDate = ""; 
@@ -831,6 +858,70 @@
             }
         }
 
+        // 清理超過 7 天的信件箱紀錄 (2)
+        function cleanAndGetInbox() {
+            let now = Date.now();
+            let sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+            inboxMessages = (inboxMessages || []).filter(msg => (now - msg.timestamp) < sevenDaysMs);
+            return inboxMessages;
+        }
+
+        function updateInboxBadge() {
+            let badge = document.getElementById('inboxBadge');
+            if (!badge) return;
+            let validInbox = cleanAndGetInbox();
+            if (validInbox.length > 0) {
+                badge.innerText = validInbox.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function openInboxModal() {
+            document.getElementById('inboxModal').classList.remove('hidden');
+            document.getElementById('inboxModal').classList.add('flex');
+            renderInboxContent();
+        }
+        window.openInboxModal = openInboxModal;
+
+        function closeInboxModal() {
+            document.getElementById('inboxModal').classList.remove('flex');
+            document.getElementById('inboxModal').classList.add('hidden');
+        }
+        window.closeInboxModal = closeInboxModal;
+
+        function renderInboxContent() {
+            let container = document.getElementById('inboxListContainer');
+            if (!container) return;
+            let validInbox = cleanAndGetInbox();
+
+            if (validInbox.length === 0) {
+                container.innerHTML = `<div class="bg-gray-950 p-6 rounded-2xl text-center text-gray-500 text-xs font-medium">目前信件箱尚無紀錄（所有紀錄均保留 7 天）。</div>`;
+                return;
+            }
+
+            let html = '';
+            // 由新到舊排序
+            let sorted = [...validInbox].sort((a, b) => b.timestamp - a.timestamp);
+            sorted.forEach(msg => {
+                let timeStr = new Date(msg.timestamp).toLocaleString('zh-CN', { hour12: false });
+                let typeColor = msg.type === 'win' ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300' :
+                                msg.type === 'lose' ? 'border-rose-500/40 bg-rose-950/30 text-rose-300' :
+                                'border-indigo-500/40 bg-indigo-950/30 text-indigo-300';
+                html += `
+                    <div class="border ${typeColor} p-4 rounded-2xl space-y-1.5 text-xs shadow-sm">
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="text-sm">${msg.title}</span>
+                            <span class="text-[10px] text-gray-400 font-mono">${timeStr}</span>
+                        </div>
+                        <p class="text-gray-200">${msg.content}</p>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
         async function loginUser() {
             let inputName = document.getElementById('authUsernameInput').value.trim();
             if (!inputName) {
@@ -856,6 +947,7 @@
                     losses = userData.losses !== undefined ? userData.losses : 0;
                     userBets = userData.userBets || {};
                     myBetLogs = userData.myBetLogs || [];
+                    inboxMessages = userData.inboxMessages || [];
                     lastCheckinDate = userData.lastCheckinDate || "";
                     checkinStreak = userData.checkinStreak || 0;
                     lastWheelDate = userData.lastWheelDate || "";
@@ -875,6 +967,7 @@
                     losses = 0;
                     userBets = {};
                     myBetLogs = [];
+                    inboxMessages = [];
                     lastCheckinDate = "";
                     checkinStreak = 0;
                     lastWheelDate = "";
@@ -889,6 +982,7 @@
                         losses: losses,
                         userBets: userBets,
                         myBetLogs: myBetLogs,
+                        inboxMessages: inboxMessages,
                         lastCheckinDate: lastCheckinDate,
                         checkinStreak: checkinStreak,
                         lastWheelDate: lastWheelDate,
@@ -901,6 +995,8 @@
                 updateAuthUI();
                 startRealtimeListeners();
                 updateWheelUI();
+                cleanAndGetInbox();
+                updateInboxBadge();
                 showToast(`歡迎回來，知識策展人 ${currentUser}！`, 'success');
             } catch (e) {
                 console.error("登入失敗: ", e);
@@ -920,6 +1016,7 @@
                     losses: losses,
                     userBets: userBets,
                     myBetLogs: myBetLogs,
+                    inboxMessages: inboxMessages,
                     lastCheckinDate: lastCheckinDate,
                     checkinStreak: checkinStreak,
                     lastWheelDate: lastWheelDate,
@@ -939,6 +1036,7 @@
             losses = 0;
             userBets = {};
             myBetLogs = [];
+            inboxMessages = [];
             dailyPostCount = 0;
             lastWheelDate = "";
             if (unsubMarkets) unsubMarkets();
@@ -946,6 +1044,7 @@
             updateAuthUI();
             updateUI();
             updateWheelUI();
+            updateInboxBadge();
             showToast('已成功登出', 'info');
         }
         window.logoutUser = logoutUser;
@@ -966,6 +1065,7 @@
             }
             updateMyTitlePreview();
             updateQuotaUI();
+            updateInboxBadge();
         }
 
         async function initApp() {
@@ -987,6 +1087,7 @@
                         losses = d.losses !== undefined ? d.losses : 0;
                         userBets = d.userBets || {};
                         myBetLogs = d.myBetLogs || [];
+                        inboxMessages = d.inboxMessages || [];
                         lastCheckinDate = d.lastCheckinDate || "";
                         checkinStreak = d.checkinStreak || 0;
                         lastWheelDate = d.lastWheelDate || "";
@@ -1009,6 +1110,8 @@
             loadHallOfFameFromCloud();
             initWheelCanvas();
             updateWheelUI();
+            cleanAndGetInbox();
+            updateInboxBadge();
         }
         window.initApp = initApp;
 
@@ -1066,6 +1169,7 @@
                     losses = allUsersData[currentUser].losses || 0;
                     userBets = allUsersData[currentUser].userBets || {};
                     myBetLogs = allUsersData[currentUser].myBetLogs || [];
+                    inboxMessages = allUsersData[currentUser].inboxMessages || [];
                     lastCheckinDate = allUsersData[currentUser].lastCheckinDate || "";
                     checkinStreak = allUsersData[currentUser].checkinStreak || 0;
                     lastWheelDate = allUsersData[currentUser].lastWheelDate || "";
@@ -1084,6 +1188,8 @@
                 document.getElementById('userBalance').innerText = balance;
                 updateQuotaUI();
                 updateWheelUI();
+                cleanAndGetInbox();
+                updateInboxBadge();
             });
 
             if (unsubMarkets) unsubMarkets();
@@ -1277,8 +1383,8 @@
                 return;
             }
 
-            filtered.forEach((market) => {
-                let globalRank = sortedMarkets.findIndex(m => m.id === market.id);
+            // (3) 修改：智慧熱門榜的編號根據篩選後的清單動態計算（當1號結算移除後，2、3號自動遞補變成1、2號）
+            filtered.forEach((market, index) => {
                 let totalPool = market.pools.reduce((a, b) => a + b, 0);
                 let likeArr = Array.isArray(market.likes) ? market.likes : [];
                 let dislikeArr = Array.isArray(market.dislikes) ? market.dislikes : [];
@@ -1295,14 +1401,13 @@
                 let card = document.createElement('div');
                 card.className = 'glass-card glass-card-hover p-6 md:p-7 rounded-3xl shadow-xl relative';
                 
-                // 判斷是否為熱門題目 (留言+按讚熱度高)
                 let interactionScore = (market.comments.length) + likeCount;
                 let isHot = isPublished && interactionScore >= 3;
 
                 let contentHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-xs bg-gray-950 text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg font-bold">#${globalRank + 1}</span>
+                            <span class="text-xs bg-gray-950 text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg font-bold">#${index + 1}</span>
                             <span class="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg font-medium">${market.category}</span>
                             <h3 class="text-lg md:text-xl font-bold tracking-tight text-gray-100 flex items-center gap-1.5">
                                 ${market.title} ${isHot ? '<span class="text-rose-500 animate-pulse text-base" title="火熱沸騰中">🔥 火熱</span>' : ''}
@@ -1327,16 +1432,27 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             知識策展人：<span class="text-blue-400 font-bold">${market.creator}</span>
                             <span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold ${creatorTitle.class}">${creatorTitle.name}</span>
-                            <span class="text-gray-600">|</span> 截止時間：<span class="text-gray-200">${formattedTime}</span>
+                            ${market.status === 'open' ? `<span class="text-gray-600">|</span> 截止時間：<span class="text-gray-200">${formattedTime}</span>` : ''}
                         </div>
+                `;
+
+                // (1) 修改：結算後的題目，距離截止時間不用再顯示
+                if (market.status === 'open') {
+                    contentHTML += `
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-rose-400 font-semibold market-deadline-timer" data-deadline="${deadlineMs}">⏰ 計算中...</span>
                             <span class="text-gray-600">|</span> 總彩池：<span class="text-yellow-400 font-bold">${totalPool} 點</span>
                             <span class="text-gray-600">|</span> 押金狀態：<span class="text-emerald-400 font-semibold">🔒 已鎖定100點 (含30%手續費分潤)</span>
                         </div>
-                `;
+                    `;
+                } else {
+                    contentHTML += `
+                        <div class="flex items-center gap-2 flex-wrap">
+                            總彩池：<span class="text-yellow-400 font-bold">${totalPool} 點</span>
+                        </div>
+                    `;
+                }
 
-                // 規定 (2): 投注者就算下注了，也不能看到證據來源，只有在結算後方可看見
                 if (market.sourceUrl) {
                     if (market.status === 'closed') {
                         contentHTML += `
@@ -1397,7 +1513,6 @@
                 });
                 contentHTML += `</div>`;
 
-                // 規定 (5): 所有題目均設有按讚和差評的美觀按鈕供人使用
                 contentHTML += `
                     <div class="mt-4 pt-4 border-t border-gray-800/80 flex flex-wrap justify-between items-center gap-3">
                         <div class="flex items-center gap-2">
@@ -1423,7 +1538,6 @@
                         contentHTML += `<div class="text-xs text-gray-400 font-medium">⏳ 進行中，等待截止或管理員提前結算</div>`;
                     }
                 } else {
-                    let closedTimeStr = market.closedAt ? new Date(market.closedAt).toLocaleString('zh-CN', { hour12: false }) : '剛剛';
                     let winnerText = market.resultIndex !== null ? market.options[market.resultIndex] : '作廢流標';
                     contentHTML += `
                         <div class="text-xs space-y-1 text-right">
@@ -1474,6 +1588,80 @@
                 container.appendChild(card);
             });
         }
+
+        // 下注核心邏輯（同步寫入信件箱通知）(2)
+        async function bet(marketKey, optionIndex) {
+            if (!currentUser) {
+                alert('請先登入帳號才能下注！');
+                return;
+            }
+
+            let inputEl = document.getElementById(`betAmount_${marketKey}_${optionIndex}`);
+            let amount = parseInt(inputEl.value);
+
+            if (isNaN(amount) || amount < 10) {
+                alert('每筆下注金額至少須為 10 點！');
+                return;
+            }
+
+            if (balance < amount) {
+                alert('您的帳戶積分不足！');
+                return;
+            }
+
+            let market = markets.find(m => (m.docId === marketKey || m.id == marketKey));
+            if (!market || market.status !== 'open') {
+                alert('此預測局已結算或不存在！');
+                return;
+            }
+
+            if (currentUser === market.creator) {
+                alert('發起人無法對自己的題目進行下注！');
+                return;
+            }
+
+            balance -= amount;
+            market.pools[optionIndex] += amount;
+
+            if (!userBets[market.id]) {
+                userBets[market.id] = {};
+            }
+            userBets[market.id][optionIndex] = (userBets[market.id][optionIndex] || 0) + amount;
+
+            let logItem = {
+                title: market.title,
+                text: `下注 ${amount} 點於「${market.options[optionIndex]}」`,
+                status: '進行中',
+                timestamp: Date.now()
+            };
+            myBetLogs.push(logItem);
+
+            // (2) 新增信件箱提醒：下注紀錄
+            let inboxMsg = {
+                id: Date.now() + Math.random(),
+                title: '🎯 下注成功通知',
+                content: `您已成功在預測「${market.title}」下注 ${amount} 點於選項「${market.options[optionIndex]}」。`,
+                timestamp: Date.now(),
+                type: 'info'
+            };
+            inboxMessages.push(inboxMsg);
+
+            try {
+                if (window.db && market.docId) {
+                    await updateCloudUserData();
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        pools: market.pools
+                    });
+                }
+                showToast(`成功下注 ${amount} 點！`, 'success');
+                updateUI();
+                updateInboxBadge();
+            } catch (e) {
+                console.error("下注失敗:", e);
+                alert('下注發生錯誤，請檢查網路。');
+            }
+        }
+        window.bet = bet;
 
         // ------------------ 管理員後台控制邏輯 ------------------
         function openAdminModal() {
@@ -1553,7 +1741,6 @@
 
         function renderAdminDashboardContent() {
             let auditMarkets = markets.filter(m => m.status === 'open' && m.isPublished !== true);
-            // 規定 (1): 管理員有權提前結算題目，不用等截止時間到才能結算 -> 結算池展示所有已上架且狀態為 open 的題目
             let settleMarkets = markets.filter(m => m.status === 'open' && m.isPublished === true);
 
             document.getElementById('adminAuditCount').innerText = auditMarkets.length;
@@ -1640,7 +1827,7 @@
         }
         window.adminRejectMarket = adminRejectMarket;
 
-        // 管理員人工審查結算核心
+        // 管理員人工審查結算核心 (發送 7 天信件箱結算通知) (2)
         async function adminResolveMarket(docId, winningIdx) {
             let market = markets.find(m => m.docId === docId);
             if (!market) return;
@@ -1650,7 +1837,6 @@
             let creatorReward = Math.round(platformFee * 0.3); // 30% 分潤給策展人
             let remainingPool = totalPool - platformFee;
 
-            // 退還 100 點押金 + 發放 30% 分潤給出題者
             if (market.creator) {
                 try {
                     let creatorRef = window.doc(window.db, "users", market.creator);
@@ -1671,14 +1857,33 @@
 
             if (userHasParticipated) {
                 let logIdx = myBetLogs.findIndex(l => l.title === market.title && l.status === '進行中');
+                let payout = 0;
                 if (userWinningBet > 0 && winningPool > 0) {
-                    let payout = Math.round((userWinningBet / winningPool) * remainingPool);
+                    payout = Math.round((userWinningBet / winningPool) * remainingPool);
                     balance += payout;
                     wins += 1;
                     if (logIdx !== -1) myBetLogs[logIdx].status = `贏得 +${payout}點`;
+                    
+                    // (2) 新增派彩成功信件通知
+                    inboxMessages.push({
+                        id: Date.now() + Math.random(),
+                        title: '🏁 預測結算與派彩通知',
+                        content: `您參與的預測「${market.title}」已結算！勝出選項為「${market.options[winningIdx]}」，您贏得了 +${payout} 點積分！`,
+                        timestamp: Date.now(),
+                        type: 'win'
+                    });
                 } else {
                     losses += 1;
                     if (logIdx !== -1) myBetLogs[logIdx].status = `未中`;
+                    
+                    // (2) 新增未中獎信件通知
+                    inboxMessages.push({
+                        id: Date.now() + Math.random(),
+                        title: '🏁 預測結算通知',
+                        content: `您參與的預測「${market.title}」已結算。勝出選項為「${market.options[winningIdx]}」，很可惜本次未中獎。`,
+                        timestamp: Date.now(),
+                        type: 'lose'
+                    });
                 }
                 await updateCloudUserData();
             }
@@ -1692,6 +1897,7 @@
                 showToast(`🏁 管理員結算完成！勝出選項：${market.options[winningIdx]}`, 'success');
                 closeAdminModal();
                 updateUI();
+                updateInboxBadge();
             } catch (e) {
                 console.error("結算失敗:", e);
             }
@@ -1823,9 +2029,19 @@
                     balance += prizePoint;
                     lastWheelDate = today;
 
+                    // 記錄轉盤獎勵到信件箱 (2)
+                    inboxMessages.push({
+                        id: Date.now() + Math.random(),
+                        title: '🎰 每日幸運輪盤獎勵',
+                        content: `您透過每日幸運大轉盤獲得了 ${prizePoint} 點積分獎勵！`,
+                        timestamp: Date.now(),
+                        type: 'info'
+                    });
+
                     updateCloudUserData().then(() => {
                         showToast(`🎉 恭喜幸運獲得 ${prizePoint} 點數！`, 'success');
                         updateWheelUI();
+                        updateInboxBadge();
                     });
                 }
             }
@@ -1940,7 +2156,6 @@
         }
         window.addComment = addComment;
 
-        // 規定 (5): 所有題目均設有按讚和差評的美觀按鈕供人使用
         async function rateMarket(identifier, type) {
             if (!currentUser) {
                 alert('請先登入帳號才能進行按讚或差評！');
@@ -1952,16 +2167,13 @@
             let likeArr = Array.isArray(market.likes) ? [...market.likes] : [];
             let dislikeArr = Array.isArray(market.dislikes) ? [...market.dislikes] : [];
 
-            // 移除舊的投票記錄
             likeArr = likeArr.filter(u => u !== currentUser);
             dislikeArr = dislikeArr.filter(u => u !== currentUser);
 
             if (type === 'like') {
                 likeArr.push(currentUser);
-                showToast('👍 按讚成功！', 'success');
             } else {
                 dislikeArr.push(currentUser);
-                showToast('👎 已給予差評', 'warning');
             }
 
             try {
@@ -1971,86 +2183,12 @@
                         dislikes: dislikeArr
                     });
                 }
+                showToast(type === 'like' ? '已按讚！' : '已給予差評！', 'success');
             } catch (e) {
-                console.error("評分失敗: ", e);
+                console.error("評價失敗:", e);
             }
         }
         window.rateMarket = rateMarket;
-
-        async function bet(identifier, optionIdx) {
-            if (!currentUser) {
-                alert('請先登入帳號才能下注！');
-                return;
-            }
-
-            let market = markets.find(m => (m.docId === identifier || m.id == identifier));
-            if (!market) return;
-
-            if (market.creator === currentUser) {
-                alert('基於平台公平機制與策展人防弊規範，出題者本人無法對自己的題目進行下注！');
-                return;
-            }
-
-            let inputEl = document.getElementById(`betAmount_${identifier}_${optionIdx}`);
-            let cost = parseInt(inputEl ? inputEl.value : 10);
-
-            if (isNaN(cost) || cost < 10) {
-                alert('下注金額最低為 10 點！');
-                return;
-            }
-            if (cost > 200) {
-                alert('單次下注上限為 200 點！');
-                return;
-            }
-            if (cost % 10 !== 0) {
-                alert('下注金額須為 10 的倍數！');
-                return;
-            }
-
-            if (balance < cost) {
-                alert('您的積分餘額不足！');
-                return;
-            }
-
-            balance -= cost;
-            market.pools[optionIdx] += cost;
-
-            if (!userBets[market.id]) userBets[market.id] = {};
-            userBets[market.id][optionIdx] = (userBets[market.id][optionIdx] || 0) + cost;
-
-            myBetLogs.push({
-                title: market.title,
-                option: market.options[optionIdx],
-                cost: cost,
-                status: '進行中'
-            });
-
-            try {
-                if (window.db && market.docId) {
-                    await updateCloudUserData();
-                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
-                        pools: market.pools
-                    });
-                }
-                showToast(`成功押注 ${cost} 點於「${market.options[optionIdx]}」！`, 'success');
-                updateUI();
-            } catch (e) {
-                console.error("下注失敗: ", e);
-                alert('下注發生錯誤，請檢查網路。');
-            }
-        }
-        window.bet = bet;
-
-        function openContactModal() {
-            document.getElementById('contactModal').classList.remove('hidden');
-            document.getElementById('contactModal').classList.add('flex');
-        }
-        window.openContactModal = openContactModal;
-        function closeContactModal() {
-            document.getElementById('contactModal').classList.remove('flex');
-            document.getElementById('contactModal').classList.add('hidden');
-        }
-        window.closeContactModal = closeContactModal;
 
         function openCheckinModal() {
             document.getElementById('checkinModal').classList.remove('hidden');
@@ -2066,12 +2204,13 @@
                 btnEl.disabled = true;
                 btnEl.className = "w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm";
             } else {
-                statusEl.innerText = "今日尚未簽到";
+                statusEl.innerText = "今日尚未簽到 (+200點)";
                 btnEl.disabled = false;
-                btnEl.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg active:scale-[0.99]";
+                btnEl.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]";
             }
         }
         window.openCheckinModal = openCheckinModal;
+
         function closeCheckinModal() {
             document.getElementById('checkinModal').classList.remove('flex');
             document.getElementById('checkinModal').classList.add('hidden');
@@ -2079,25 +2218,40 @@
         window.closeCheckinModal = closeCheckinModal;
 
         async function claimCheckin() {
-            if (!currentUser) return;
             let today = getTodayDateString();
             if (lastCheckinDate === today) return;
 
-            let yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-            if (lastCheckinDate === yesterday) {
+            let yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            let yOpts = { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric' };
+            let yParts = new Intl.DateTimeFormat('en-US', yOpts).formatToParts(yesterday);
+            let yp = {};
+            yParts.forEach(item => yp[item.type] = item.value);
+            let yesterdayStr = `${yp.year}-${yp.month}-${yp.day}`;
+
+            if (lastCheckinDate === yesterdayStr) {
                 checkinStreak += 1;
             } else {
                 checkinStreak = 1;
             }
 
             lastCheckinDate = today;
-            let reward = 200 + (checkinStreak > 1 ? 50 : 0);
-            balance += reward;
+            balance += 200;
+
+            // 記錄簽到獎勵到信件箱 (2)
+            inboxMessages.push({
+                id: Date.now() + Math.random(),
+                title: '📅 每日簽到獎勵',
+                content: `您已成功完成今日簽到（連續 ${checkinStreak} 天），獲得 200 點積分獎勵！`,
+                timestamp: Date.now(),
+                type: 'info'
+            });
 
             await updateCloudUserData();
-            showToast(`📅 簽到成功！獲得獎勵 ${reward} 點`, 'success');
+            showToast('🎉 簽到成功，獲得 200 點積分！', 'success');
             closeCheckinModal();
             updateUI();
+            updateInboxBadge();
         }
         window.claimCheckin = claimCheckin;
 
@@ -2106,43 +2260,56 @@
             document.getElementById('guideModal').classList.add('flex');
         }
         window.openGuideModal = openGuideModal;
+
         function closeGuideModal() {
             document.getElementById('guideModal').classList.remove('flex');
             document.getElementById('guideModal').classList.add('hidden');
         }
         window.closeGuideModal = closeGuideModal;
 
+        function openContactModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactModal').classList.add('flex');
+        }
+        window.openContactModal = openContactModal;
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.remove('flex');
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+        window.closeContactModal = closeContactModal;
+
         function openProfileModal() {
             document.getElementById('profileModal').classList.remove('hidden');
             document.getElementById('profileModal').classList.add('flex');
-
+            
             document.getElementById('modalUsername').innerText = currentUser || '未登入';
             document.getElementById('modalBalance').innerText = balance;
+            document.getElementById('modalWins').innerText = `${wins} 勝`;
+            document.getElementById('modalLosses').innerText = `${losses} 敗`;
             let total = wins + losses;
             let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
             document.getElementById('modalWinRate').innerText = `${rate}%`;
-            document.getElementById('modalWins').innerText = `${wins} 勝`;
-            document.getElementById('modalLosses').innerText = `${losses} 敗`;
 
             let titleObj = getTitleAndBadge(balance);
-            let badgeEl = document.getElementById('modalTitleBadge');
-            badgeEl.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
-            badgeEl.innerText = titleObj.name;
+            let modalBadge = document.getElementById('modalTitleBadge');
+            modalBadge.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
+            modalBadge.innerText = titleObj.name;
 
             let historyContainer = document.getElementById('myBetHistoryList');
             if (myBetLogs.length === 0) {
                 historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
             } else {
                 let html = '';
-                myBetLogs.slice().reverse().forEach(log => {
-                    let statusColor = log.status.includes('贏') ? 'text-emerald-400' : log.status.includes('未') ? 'text-rose-400' : 'text-yellow-400';
+                [...myBetLogs].reverse().forEach(log => {
+                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status === '未中' ? 'text-rose-400 font-bold' : 'text-yellow-400 font-semibold';
                     html += `
                         <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center shadow-sm">
                             <div>
                                 <span class="font-bold text-gray-100 block mb-0.5">${log.title}</span>
-                                <span class="text-gray-400">押注: <b class="text-blue-400">${log.option}</b> (${log.cost}點)</span>
+                                <span class="text-gray-400">${log.text}</span>
                             </div>
-                            <span class="font-bold ${statusColor}">${log.status}</span>
+                            <span class="${statusColor}">${log.status}</span>
                         </div>
                     `;
                 });
@@ -2150,6 +2317,7 @@
             }
         }
         window.openProfileModal = openProfileModal;
+
         function closeProfileModal() {
             document.getElementById('profileModal').classList.remove('flex');
             document.getElementById('profileModal').classList.add('hidden');
