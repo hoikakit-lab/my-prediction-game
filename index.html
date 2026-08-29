@@ -64,9 +64,9 @@
         ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #374151; }
     </style>
-    <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
+    <!-- 載入 Firebase 雲端大腦與資料庫工具 (已升級支援安全認證) -->
     <script type="module">
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -95,6 +95,7 @@
         window.setDoc = setDoc;
         window.onSnapshot = onSnapshot;
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.signInAnonymously = signInAnonymously;
 
         if (typeof window.initApp === 'function') {
             window.initApp();
@@ -112,7 +113,7 @@
             <div class="flex items-center gap-2.5 overflow-hidden">
                 <span class="text-base animate-bounce">📢</span>
                 <span class="text-blue-200 truncate">
-                    <b>全方位旗艦升級版 (即時同步修復版)</b>：已全面修復註冊登入雲端同步邏輯、修復表單提交卡死問題！
+                    <b>全方位旗艦升級版 (安全性修復版)</b>：已全面修復安全規則下的雲端註冊登入邏輯、修復表單提交卡死問題！
                 </span>
             </div>
             <button onclick="openGuideModal()" class="shrink-0 bg-blue-600/60 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-sm active:scale-95">
@@ -123,7 +124,7 @@
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/85 pb-6 gap-6">
             <div class="text-center lg:text-left">
                 <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm flex items-center justify-center lg:justify-start gap-2">
-                    🎯 知識策展預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">雲端同步版✨</span>
+                    🎯 知識策展預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">雲端安全同步版✨</span>
                 </h1>
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
                     <p class="text-gray-400 text-xs md:text-sm">🔥 策展人榮譽定位：嚴謹查證、拒絕謠言，雙軌並行累積公信力評分。</p>
@@ -820,9 +821,14 @@
         async function loginUser() {
             let inputName = document.getElementById('authUsernameInput').value.trim();
             if (!inputName) { alert('請輸入您的暱稱來登入或註冊！'); return; }
-            if (!window.db) { alert('資料庫連線中，請稍後再試'); return; }
+            if (!window.db || !window.auth) { alert('資料庫連線中，請稍後再試'); return; }
 
             try {
+                // 自動進行 Firebase 匿名身份驗證以符合安全規則 (request.auth != null)
+                if (!window.auth.currentUser) {
+                    await window.signInAnonymously(window.auth);
+                }
+
                 let userDocRef = window.doc(window.db, "users", inputName);
                 let userSnap = await window.getDoc(userDocRef);
                 let today = getTodayDateString();
@@ -867,7 +873,7 @@
                 showToast(`歡迎回來，知識策展人 ${currentUser}！`, 'success');
             } catch (e) {
                 console.error("登入失敗: ", e);
-                alert('登入發生錯誤，請檢查網路連線。');
+                alert('登入發生錯誤，請檢查 Firebase 安全規則或網路連線。');
             }
         }
         window.loginUser = loginUser;
@@ -920,6 +926,12 @@
             let savedUser = localStorage.getItem('saved_current_user');
             let savedAdmin = localStorage.getItem('saved_admin_auth');
             if (savedAdmin === 'true') isAdminLoggedIn = true;
+
+            if (window.auth && !window.auth.currentUser) {
+                try {
+                    await window.signInAnonymously(window.auth);
+                } catch (err) { console.error("自動匿名登入失敗:", err); }
+            }
 
             if (savedUser && window.db) {
                 try {
@@ -1771,110 +1783,104 @@
                 ctx.translate(radius, radius);
                 ctx.rotate(sectorAngle + arc / 2);
                 ctx.textAlign = 'right';
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px Inter, sans-serif';
+                ctx.fillStyle = '#030712';
+                ctx.font = 'bold 12px sans-serif';
                 ctx.fillText(wheelSectors[i].label, radius - 15, 6);
                 ctx.restore();
             }
         }
 
-        function updateWheelUI() {
-            let badge = document.getElementById('wheelStatusBadge');
-            let btn = document.getElementById('spinBtn');
-            let today = getTodayDateString();
-            if (lastWheelDate === today) {
-                if (badge) { badge.innerText = '今日已轉過'; badge.className = 'text-[10px] bg-gray-800 text-gray-400 px-2.5 py-0.5 rounded-full border border-gray-700 font-semibold'; }
-                if (btn) { btn.innerText = '今日次數已用完 (明天請早)'; btn.disabled = true; btn.className = 'w-full mt-2 bg-gray-800 text-gray-500 font-bold py-2.5 rounded-xl cursor-not-allowed text-xs'; }
-            } else {
-                if (badge) { badge.innerText = '每日1次'; badge.className = 'text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-semibold'; }
-                if (btn) { btn.innerText = '🎯 立即轉動 (免費)'; btn.disabled = false; btn.className = 'w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95'; }
-            }
-        }
-
         function spinWheel() {
-            if (!currentUser) { alert('請先登入帳號才能轉動大輪盤！'); return; }
-            let today = getTodayDateString();
-            if (lastWheelDate === today) { alert('今天已經轉過大輪盤了，明天再來吧！'); return; }
+            if (!currentUser) { alert('請先登入帳號才能轉動輪盤！'); return; }
             if (isSpinning) return;
 
+            let today = getTodayDateString();
+            if (lastWheelDate === today) {
+                alert('今日的幸運大輪盤已經轉過了，請明天再來！');
+                return;
+            }
+
             isSpinning = true;
-            lastWheelDate = today;
-            updateWheelUI();
+            let spinBtn = document.getElementById('spinBtn');
+            spinBtn.disabled = true;
+            spinBtn.className = 'w-full mt-2 bg-gray-800 text-gray-500 font-extrabold py-2.5 rounded-xl cursor-not-allowed text-xs';
 
-            let randomSectorIndex = Math.floor(Math.random() * wheelSectors.length);
-            let winningSector = wheelSectors[randomSectorIndex];
-            let arc = (2 * Math.PI) / wheelSectors.length;
-            let targetAngle = 5 * 2 * Math.PI + (wheelSectors.length - randomSectorIndex) * arc - arc / 2;
-
-            let startTime = null;
-            let duration = 3000;
+            let randomSectorIdx = Math.floor(Math.random() * wheelSectors.length);
+            let chosenSector = wheelSectors[randomSectorIdx];
+            let numSectors = wheelSectors.length;
+            let arc = 360 / numSectors;
+            let targetDegree = 360 * 5 + (numSectors - 1 - randomSectorIdx) * arc + arc / 2;
+            let duration = 3500;
+            let startTime = performance.now();
+            let startAngleDeg = (wheelAngle * 180) / Math.PI;
 
             function animateSpin(currentTime) {
-                if (!startTime) startTime = currentTime;
                 let elapsed = currentTime - startTime;
                 let progress = Math.min(elapsed / duration, 1);
                 let easeOut = 1 - Math.pow(1 - progress, 3);
-                let currentAngle = wheelAngle + (targetAngle - wheelAngle) * easeOut;
-
-                drawWheel(currentAngle);
+                let currentDeg = startAngleDeg + (targetDegree - startAngleDeg) * easeOut;
+                wheelAngle = (currentDeg * Math.PI) / 180;
+                drawWheel(wheelAngle);
 
                 if (progress < 1) {
                     requestAnimationFrame(animateSpin);
                 } else {
                     isSpinning = false;
-                    wheelAngle = targetAngle % (2 * Math.PI);
-                    balance += winningSector.value;
+                    lastWheelDate = today;
+                    balance += chosenSector.value;
+
+                    inboxMessages.push({
+                        id: Date.now() + Math.random(),
+                        title: '🎰 每日輪盤中獎通知',
+                        content: `恭喜您在今日幸運大輪盤抽中「${chosenSector.label}」！積分已自動入帳。`,
+                        timestamp: Date.now(),
+                        type: 'win'
+                    });
+
                     updateCloudUserData();
-                    showToast(`🎉 恭喜在幸運輪盤抽中 ${winningSector.label}！`, 'success');
+                    updateWheelUI();
                     updateUI();
+                    updateInboxBadge();
+                    showToast(`🎉 恭喜轉中 ${chosenSector.label}！`, 'success');
                 }
             }
             requestAnimationFrame(animateSpin);
         }
         window.spinWheel = spinWheel;
 
-        function openCheckinModal() {
-            if (!currentUser) { alert('請先登入帳號才能簽到！'); return; }
-            document.getElementById('checkinModal').classList.remove('hidden');
-            document.getElementById('checkinModal').classList.add('flex');
-            updateCheckinModalUI();
-        }
-        window.openCheckinModal = openCheckinModal;
-
-        function closeCheckinModal() {
-            document.getElementById('checkinModal').classList.remove('flex');
-            document.getElementById('checkinModal').classList.add('hidden');
-        }
-        window.closeCheckinModal = closeCheckinModal;
-
-        function updateCheckinModalUI() {
-            let streakEl = document.getElementById('checkinStreakCount');
-            let statusEl = document.getElementById('todayCheckinStatus');
-            let btnEl = document.getElementById('claimCheckinBtn');
+        function updateWheelUI() {
             let today = getTodayDateString();
+            let badge = document.getElementById('wheelStatusBadge');
+            let btn = document.getElementById('spinBtn');
+            if (!badge || !btn) return;
 
-            if (streakEl) streakEl.innerText = `${checkinStreak} 天`;
-            if (lastCheckinDate === today) {
-                if (statusEl) statusEl.innerText = '今日已完成簽到';
-                if (btnEl) {
-                    btnEl.disabled = true;
-                    btnEl.innerText = '今日已簽到 (明天請早)';
-                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm';
+            if (lastWheelDate === today) {
+                badge.innerText = '今日已轉過';
+                badge.className = 'text-[10px] bg-gray-800 text-gray-400 px-2.5 py-0.5 rounded-full border border-gray-700 font-semibold';
+                if (!isSpinning) {
+                    btn.disabled = true;
+                    btn.className = 'w-full mt-2 bg-gray-800 text-gray-500 font-extrabold py-2.5 rounded-xl cursor-not-allowed text-xs';
+                    btn.innerText = '🎯 今日額度已使用';
                 }
             } else {
-                if (statusEl) statusEl.innerText = '今日尚未簽到';
-                if (btnEl) {
-                    btnEl.disabled = false;
-                    btnEl.innerText = '立即領取今日簽到獎勵 (+200點)';
-                    btnEl.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]';
+                badge.innerText = '每日1次';
+                badge.className = 'text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-semibold';
+                if (!isSpinning && currentUser) {
+                    btn.disabled = false;
+                    btn.className = 'w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95';
+                    btn.innerText = '🎯 立即轉動 (免費)';
+                } else if (!currentUser) {
+                    btn.disabled = true;
+                    btn.className = 'w-full mt-2 bg-gray-800 text-gray-500 font-extrabold py-2.5 rounded-xl cursor-not-allowed text-xs';
+                    btn.innerText = '請先登入後才能轉動';
                 }
             }
         }
 
         async function claimCheckin() {
-            if (!currentUser) { alert('請先登入帳號！'); return; }
+            if (!currentUser) { alert('請先登入帳號才能簽到！'); return; }
             let today = getTodayDateString();
-            if (lastCheckinDate === today) { alert('今天已經簽到過了！'); return; }
+            if (lastCheckinDate === today) { alert('今天已經簽到過了，請明天再來！'); return; }
 
             let yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -1887,36 +1893,69 @@
             }
 
             lastCheckinDate = today;
-            balance += 200;
+            let reward = 200 + (checkinStreak - 1) * 50;
+            balance += reward;
 
             inboxMessages.push({
                 id: Date.now() + Math.random(),
-                title: '📅 每日簽到成功',
-                content: `您已完成今日簽到，連續簽到 ${checkinStreak} 天，獲得獎勵 +200 點積分！`,
+                title: '📅 每日簽到成功通知',
+                content: `您已完成今日簽到（連續 ${checkinStreak} 天），獲得獎勵積分 +${reward} 點！`,
                 timestamp: Date.now(),
                 type: 'info'
             });
 
             await updateCloudUserData();
-            updateCheckinModalUI();
+            closeCheckinModal();
+            updateUI();
             updateInboxBadge();
-            showToast('簽到成功，獲得 +200 點積分！', 'success');
+            showToast(`🎉 簽到成功！連續 ${checkinStreak} 天，獲得 +${reward} 點！`, 'success');
         }
         window.claimCheckin = claimCheckin;
+
+        function openCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('hidden');
+            document.getElementById('checkinModal').classList.add('flex');
+            let today = getTodayDateString();
+            let streakEl = document.getElementById('checkinStreakCount');
+            let statusEl = document.getElementById('todayCheckinStatus');
+            let btn = document.getElementById('claimCheckinBtn');
+
+            streakEl.innerText = `${checkinStreak || 1} 天`;
+            if (lastCheckinDate === today) {
+                statusEl.innerText = "今日已完成簽到 ✅";
+                statusEl.className = "text-xs text-gray-400 font-semibold mt-2.5";
+                btn.disabled = true;
+                btn.className = "w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm";
+                btn.innerText = "今日已領取簽到獎勵";
+            } else {
+                statusEl.innerText = "今日尚未簽到 ⚡";
+                statusEl.className = "text-xs text-emerald-400 font-semibold mt-2.5";
+                btn.disabled = false;
+                btn.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]";
+                btn.innerText = "立即領取今日簽到獎勵 (+200點起)";
+            }
+        }
+        window.openCheckinModal = openCheckinModal;
+
+        function closeCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('flex');
+            document.getElementById('checkinModal').classList.add('hidden');
+        }
+        window.closeCheckinModal = closeCheckinModal;
 
         function openProfileModal() {
             if (!currentUser) { alert('請先登入帳號！'); return; }
             document.getElementById('profileModal').classList.remove('hidden');
             document.getElementById('profileModal').classList.add('flex');
-            
+
             document.getElementById('modalUsername').innerText = currentUser;
             document.getElementById('modalBalance').innerText = balance;
-            
-            let total = wins + losses;
-            let winRate = total === 0 ? 0 : Math.round((wins / total) * 100);
-            document.getElementById('modalWinRate').innerText = `${winRate}%`;
             document.getElementById('modalWins').innerText = `${wins} 勝`;
             document.getElementById('modalLosses').innerText = `${losses} 敗`;
+
+            let total = wins + losses;
+            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
+            document.getElementById('modalWinRate').innerText = `${rate}%`;
 
             let titleObj = getTitleAndBadge(balance);
             let badgeEl = document.getElementById('modalTitleBadge');
@@ -1930,18 +1969,16 @@
                 let html = '';
                 [...myBetLogs].reverse().forEach(log => {
                     let timeStr = new Date(log.timestamp).toLocaleString('zh-CN', { hour12: false });
-                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 border-emerald-500/30 bg-emerald-950/20' :
-                                      log.status === '進行中' ? 'text-blue-400 border-blue-500/30 bg-blue-950/20' :
-                                      'text-rose-400 border-rose-500/30 bg-rose-950/20';
+                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 font-bold' : log.status === '未中' ? 'text-rose-400 font-semibold' : 'text-yellow-400 font-medium';
                     html += `
-                        <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs space-y-1">
+                        <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl text-xs space-y-1 shadow-sm">
                             <div class="flex justify-between font-bold">
                                 <span class="text-gray-200">${log.title}</span>
-                                <span class="px-2 py-0.5 rounded border text-[10px] ${statusColor}">${log.status}</span>
+                                <span class="${statusColor}">${log.status}</span>
                             </div>
-                            <div class="flex justify-between text-gray-400">
+                            <div class="flex justify-between text-gray-400 text-[11px]">
                                 <span>${log.text}</span>
-                                <span class="font-mono text-[10px]">${timeStr}</span>
+                                <span class="font-mono">${timeStr}</span>
                             </div>
                         </div>
                     `;
@@ -1969,17 +2006,15 @@
         }
         window.closeGuideModal = closeGuideModal;
 
-        function openContactModal() {
-            document.getElementById('contactModal').classList.remove('hidden');
-            document.getElementById('contactModal').classList.add('flex');
-        }
-        window.openContactModal = openContactModal;
-
         function closeContactModal() {
             document.getElementById('contactModal').classList.remove('flex');
             document.getElementById('contactModal').classList.add('hidden');
         }
         window.closeContactModal = closeContactModal;
+        window.openContactModal = function() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactModal').classList.add('flex');
+        };
     </script>
 </body>
 </html>
