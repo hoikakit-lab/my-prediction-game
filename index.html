@@ -112,7 +112,7 @@
             <div class="flex items-center gap-2.5 overflow-hidden">
                 <span class="text-base animate-bounce">📢</span>
                 <span class="text-blue-200 truncate">
-                    <b>全方位旗艦升級版 (安全強化版)</b>：已全面修復程式碼結構、修復 JavaScript 語法卡死問題與雲端資料庫防護！
+                    <b>全方位旗艦升級版 (即時同步修復版)</b>：已全面修復註冊登入雲端同步邏輯、修復表單提交卡死問題！
                 </span>
             </div>
             <button onclick="openGuideModal()" class="shrink-0 bg-blue-600/60 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-sm active:scale-95">
@@ -123,7 +123,7 @@
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 border-b border-gray-800/85 pb-6 gap-6">
             <div class="text-center lg:text-left">
                 <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm flex items-center justify-center lg:justify-start gap-2">
-                    🎯 知識策展預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">安全旗艦版✨</span>
+                    🎯 知識策展預測市集 <span class="text-sm font-medium px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-full align-middle">雲端同步版✨</span>
                 </h1>
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-2.5">
                     <p class="text-gray-400 text-xs md:text-sm">🔥 策展人榮譽定位：嚴謹查證、拒絕謠言，雙軌並行累積公信力評分。</p>
@@ -1379,6 +1379,131 @@
         }
         window.bet = bet;
 
+        async function createMarket() {
+            if (!currentUser) { alert('請先登入帳號才能發起策展局！'); return; }
+            let remaining = checkDailyQuota();
+            if (remaining <= 0) { alert('今日策展次數已用完！'); return; }
+            if (balance < 100) { alert('帳戶積分不足 100 點押金！'); return; }
+
+            let category = document.getElementById('marketCategory').value;
+            let deadline = document.getElementById('marketDeadline').value;
+            let title = document.getElementById('newMarketTitle').value.trim();
+            let sourceUrl = document.getElementById('marketSourceUrl').value.trim();
+            let optionsRaw = document.getElementById('marketOptions').value.trim();
+            let imageUrl = document.getElementById('marketImage').value.trim();
+
+            if (!title) { alert('請輸入預測題目！'); return; }
+            if (!sourceUrl) { alert('請務必填寫公開證據來源網址以確保查證品質！'); return; }
+            if (!validateDeadlineField(deadline)) { alert('結算截止時間格式錯誤或小於當前北京時間！'); return; }
+
+            let options = optionsRaw.split(',').map(s => s.trim()).filter(Boolean);
+            if (options.length < 2) { alert('選項至少須設定兩個以上！'); return; }
+
+            balance -= 100;
+            dailyPostCount += 1;
+
+            let newMarket = {
+                category,
+                deadline,
+                title,
+                sourceUrl,
+                options,
+                imageUrl,
+                creator: currentUser,
+                pools: new Array(options.length).fill(0),
+                status: 'open',
+                isPublished: false,
+                likes: [],
+                dislikes: [],
+                comments: [],
+                createdAt: Date.now()
+            };
+
+            try {
+                if (window.db) {
+                    await window.addDoc(window.collection(window.db, "markets"), newMarket);
+                    await updateCloudUserData();
+                }
+                document.getElementById('newMarketTitle').value = '';
+                document.getElementById('marketSourceUrl').value = '';
+                document.getElementById('marketDeadline').value = '';
+                document.getElementById('marketImage').value = '';
+                showToast('🎉 策展局已成功發起，已進入管理員審核預熱池！', 'success');
+                updateUI();
+            } catch (e) {
+                console.error("發起策展局失敗:", e);
+                alert('發起失敗，請檢查網路連線。');
+            }
+        }
+        window.createMarket = createMarket;
+
+        async function addComment(marketDocId) {
+            if (!currentUser) { alert('請先登入帳號才能留言！'); return; }
+            let inputEl = document.getElementById(`commentInput_${marketDocId}`);
+            let text = inputEl.value.trim();
+            if (!text) { alert('請輸入留言內容！'); return; }
+
+            let market = markets.find(m => m.docId === marketDocId || m.id === marketDocId);
+            if (!market) return;
+
+            if (!market.comments) market.comments = [];
+            market.comments.push({
+                user: currentUser,
+                text,
+                timestamp: Date.now()
+            });
+
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        comments: market.comments
+                    });
+                }
+                inputEl.value = '';
+                showToast('留言發布成功！', 'success');
+            } catch (e) { console.error("留言失敗:", e); }
+        }
+        window.addComment = addComment;
+
+        async function rateMarket(marketDocId, type) {
+            if (!currentUser) { alert('請先登入帳號才能評分！'); return; }
+            let market = markets.find(m => m.docId === marketDocId || m.id === marketDocId);
+            if (!market) return;
+
+            if (!Array.isArray(market.likes)) market.likes = [];
+            if (!Array.isArray(market.dislikes)) market.dislikes = [];
+
+            let hasLiked = market.likes.includes(currentUser);
+            let hasDisliked = market.dislikes.includes(currentUser);
+
+            if (type === 'like') {
+                if (hasLiked) {
+                    market.likes = market.likes.filter(u => u !== currentUser);
+                } else {
+                    market.likes.push(currentUser);
+                    market.dislikes = market.dislikes.filter(u => u !== currentUser);
+                }
+            } else if (type === 'dislike') {
+                if (hasDisliked) {
+                    market.dislikes = market.dislikes.filter(u => u !== currentUser);
+                } else {
+                    market.dislikes.push(currentUser);
+                    market.likes = market.likes.filter(u => u !== currentUser);
+                }
+            }
+
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        likes: market.likes,
+                        dislikes: market.dislikes
+                    });
+                }
+                showToast('評分更新成功！', 'success');
+            } catch (e) { console.error("評分失敗:", e); }
+        }
+        window.rateMarket = rateMarket;
+
         function openAdminModal() {
             document.getElementById('adminModal').classList.remove('hidden');
             document.getElementById('adminModal').classList.add('flex');
@@ -1708,129 +1833,11 @@
         }
         window.spinWheel = spinWheel;
 
-        async function createMarket() {
-            if (!currentUser) { alert('請先登入帳號才能發起策展局！'); return; }
-            let remaining = checkDailyQuota();
-            if (remaining <= 0) { alert('今日策展次數已用完！'); return; }
-            if (balance < 100) { alert('帳戶積分不足 100 點押金！'); return; }
-
-            let category = document.getElementById('marketCategory').value;
-            let deadline = document.getElementById('marketDeadline').value;
-            let title = document.getElementById('newMarketTitle').value.trim();
-            let sourceUrl = document.getElementById('marketSourceUrl').value.trim();
-            let optionsRaw = document.getElementById('marketOptions').value.trim();
-            let imageUrl = document.getElementById('marketImage').value.trim();
-
-            if (!title) { alert('請輸入預測題目！'); return; }
-            if (!sourceUrl) { alert('請務必填寫公開證據來源網址以確保查證品質！'); return; }
-            if (!validateDeadlineField(deadline)) { alert('結算截止時間格式錯誤或小於當前北京時間！'); return; }
-
-            let options = optionsRaw.split(',').map(s => s.trim()).filter(Boolean);
-            if (options.length < 2) { alert('選項至少須設定兩個以上！'); return; }
-
-            balance -= 100;
-            dailyPostCount += 1;
-
-            let newMarket = {
-                category,
-                deadline,
-                title,
-                sourceUrl,
-                options,
-                imageUrl,
-                creator: currentUser,
-                pools: new Array(options.length).fill(0),
-                status: 'open',
-                isPublished: false,
-                likes: [],
-                dislikes: [],
-                comments: [],
-                createdAt: Date.now()
-            };
-
-            try {
-                if (window.db) {
-                    await updateCloudUserData();
-                    await window.addDoc(window.collection(window.db, "markets"), newMarket);
-                }
-                showToast('🎉 策展局發起成功，已送入審核預熱池！', 'success');
-                document.getElementById('newMarketTitle').value = '';
-                document.getElementById('marketSourceUrl').value = '';
-                document.getElementById('marketImage').value = '';
-                updateUI();
-            } catch (e) { console.error("發起失敗:", e); }
-        }
-        window.createMarket = createMarket;
-
-        async function rateMarket(docId, type) {
-            if (!currentUser) { alert('請先登入帳號才能進行評價！'); return; }
-            let market = markets.find(m => m.docId === docId);
-            if (!market) return;
-
-            if (!Array.isArray(market.likes)) market.likes = [];
-            if (!Array.isArray(market.dislikes)) market.dislikes = [];
-
-            let hasLiked = market.likes.includes(currentUser);
-            let hasDisliked = market.dislikes.includes(currentUser);
-
-            if (type === 'like') {
-                if (hasLiked) {
-                    market.likes = market.likes.filter(u => u !== currentUser);
-                } else {
-                    market.likes.push(currentUser);
-                    market.dislikes = market.dislikes.filter(u => u !== currentUser);
-                }
-            } else {
-                if (hasDisliked) {
-                    market.dislikes = market.dislikes.filter(u => u !== currentUser);
-                } else {
-                    market.dislikes.push(currentUser);
-                    market.likes = market.likes.filter(u => u !== currentUser);
-                }
-            }
-
-            try {
-                if (window.db) {
-                    await window.updateDoc(window.doc(window.db, "markets", docId), {
-                        likes: market.likes,
-                        dislikes: market.dislikes
-                    });
-                }
-                updateUI();
-            } catch (e) { console.error("評價失敗:", e); }
-        }
-        window.rateMarket = rateMarket;
-
-        async function addComment(docId) {
-            if (!currentUser) { alert('請先登入帳號才能留言！'); return; }
-            let inputEl = document.getElementById(`commentInput_${docId}`);
-            if (!inputEl) return;
-            let text = inputEl.value.trim();
-            if (!text) { alert('請輸入留言內容！'); return; }
-
-            let market = markets.find(m => m.docId === docId);
-            if (!market) return;
-            if (!Array.isArray(market.comments)) market.comments = [];
-
-            market.comments.push({ user: currentUser, text, timestamp: Date.now() });
-
-            try {
-                if (window.db) {
-                    await window.updateDoc(window.doc(window.db, "markets", docId), {
-                        comments: market.comments
-                    });
-                }
-                inputEl.value = '';
-                updateUI();
-                showToast('留言發布成功', 'success');
-            } catch (e) { console.error("留言失敗:", e); }
-        }
-        window.addComment = addComment;
-
         function openCheckinModal() {
+            if (!currentUser) { alert('請先登入帳號才能簽到！'); return; }
             document.getElementById('checkinModal').classList.remove('hidden');
             document.getElementById('checkinModal').classList.add('flex');
-            updateCheckinUI();
+            updateCheckinModalUI();
         }
         window.openCheckinModal = openCheckinModal;
 
@@ -1840,7 +1847,7 @@
         }
         window.closeCheckinModal = closeCheckinModal;
 
-        function updateCheckinUI() {
+        function updateCheckinModalUI() {
             let streakEl = document.getElementById('checkinStreakCount');
             let statusEl = document.getElementById('todayCheckinStatus');
             let btnEl = document.getElementById('claimCheckinBtn');
@@ -1848,16 +1855,24 @@
 
             if (streakEl) streakEl.innerText = `${checkinStreak} 天`;
             if (lastCheckinDate === today) {
-                if (statusEl) { statusEl.innerText = '今日已完成簽到'; statusEl.className = 'text-xs text-gray-400 font-semibold mt-2.5'; }
-                if (btnEl) { btnEl.innerText = '今日已簽到 (明天請早)'; btnEl.disabled = true; btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm'; }
+                if (statusEl) statusEl.innerText = '今日已完成簽到';
+                if (btnEl) {
+                    btnEl.disabled = true;
+                    btnEl.innerText = '今日已簽到 (明天請早)';
+                    btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm';
+                }
             } else {
-                if (statusEl) { statusEl.innerText = '今日尚未簽到'; statusEl.className = 'text-xs text-emerald-400 font-semibold mt-2.5'; }
-                if (btnEl) { btnEl.innerText = '立即領取今日簽到獎勵 (+200點)'; btnEl.disabled = false; btnEl.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]'; }
+                if (statusEl) statusEl.innerText = '今日尚未簽到';
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerText = '立即領取今日簽到獎勵 (+200點)';
+                    btnEl.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]';
+                }
             }
         }
 
         async function claimCheckin() {
-            if (!currentUser) { alert('請先登入帳號才能簽到！'); return; }
+            if (!currentUser) { alert('請先登入帳號！'); return; }
             let today = getTodayDateString();
             if (lastCheckinDate === today) { alert('今天已經簽到過了！'); return; }
 
@@ -1876,25 +1891,63 @@
 
             inboxMessages.push({
                 id: Date.now() + Math.random(),
-                title: '📅 每日簽到獎勵',
-                content: `您已成功完成簽到，獲得 +200 點積分獎勵！目前連續簽到 ${checkinStreak} 天。`,
+                title: '📅 每日簽到成功',
+                content: `您已完成今日簽到，連續簽到 ${checkinStreak} 天，獲得獎勵 +200 點積分！`,
                 timestamp: Date.now(),
                 type: 'info'
             });
 
             await updateCloudUserData();
-            updateCheckinUI();
-            closeCheckinModal();
-            showToast('簽到成功，獲得 +200 點！', 'success');
-            updateUI();
+            updateCheckinModalUI();
             updateInboxBadge();
+            showToast('簽到成功，獲得 +200 點積分！', 'success');
         }
         window.claimCheckin = claimCheckin;
 
         function openProfileModal() {
+            if (!currentUser) { alert('請先登入帳號！'); return; }
             document.getElementById('profileModal').classList.remove('hidden');
             document.getElementById('profileModal').classList.add('flex');
-            renderProfileData();
+            
+            document.getElementById('modalUsername').innerText = currentUser;
+            document.getElementById('modalBalance').innerText = balance;
+            
+            let total = wins + losses;
+            let winRate = total === 0 ? 0 : Math.round((wins / total) * 100);
+            document.getElementById('modalWinRate').innerText = `${winRate}%`;
+            document.getElementById('modalWins').innerText = `${wins} 勝`;
+            document.getElementById('modalLosses').innerText = `${losses} 敗`;
+
+            let titleObj = getTitleAndBadge(balance);
+            let badgeEl = document.getElementById('modalTitleBadge');
+            badgeEl.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
+            badgeEl.innerText = titleObj.name;
+
+            let historyContainer = document.getElementById('myBetHistoryList');
+            if (myBetLogs.length === 0) {
+                historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
+            } else {
+                let html = '';
+                [...myBetLogs].reverse().forEach(log => {
+                    let timeStr = new Date(log.timestamp).toLocaleString('zh-CN', { hour12: false });
+                    let statusColor = log.status.includes('贏得') ? 'text-emerald-400 border-emerald-500/30 bg-emerald-950/20' :
+                                      log.status === '進行中' ? 'text-blue-400 border-blue-500/30 bg-blue-950/20' :
+                                      'text-rose-400 border-rose-500/30 bg-rose-950/20';
+                    html += `
+                        <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs space-y-1">
+                            <div class="flex justify-between font-bold">
+                                <span class="text-gray-200">${log.title}</span>
+                                <span class="px-2 py-0.5 rounded border text-[10px] ${statusColor}">${log.status}</span>
+                            </div>
+                            <div class="flex justify-between text-gray-400">
+                                <span>${log.text}</span>
+                                <span class="font-mono text-[10px]">${timeStr}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                historyContainer.innerHTML = html;
+            }
         }
         window.openProfileModal = openProfileModal;
 
@@ -1903,51 +1956,6 @@
             document.getElementById('profileModal').classList.add('hidden');
         }
         window.closeProfileModal = closeProfileModal;
-
-        function renderProfileData() {
-            document.getElementById('modalUsername').innerText = currentUser || '-';
-            let titleObj = getTitleAndBadge(balance);
-            let badgeEl = document.getElementById('modalTitleBadge');
-            if (badgeEl) {
-                badgeEl.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
-                badgeEl.innerText = titleObj.name;
-            }
-
-            document.getElementById('modalBalance').innerText = balance;
-            let total = wins + losses;
-            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
-            document.getElementById('modalWinRate').innerText = `${rate}%`;
-            document.getElementById('modalWins').innerText = `${wins} 勝`;
-            document.getElementById('modalLosses').innerText = `${losses} 敗`;
-
-            let container = document.getElementById('myBetHistoryList');
-            if (!container) return;
-            if (!myBetLogs || myBetLogs.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
-                return;
-            }
-
-            let html = '';
-            [...myBetLogs].reverse().forEach(log => {
-                let timeStr = new Date(log.timestamp).toLocaleString('zh-CN', { hour12: false });
-                let color = log.status.includes('贏') ? 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30' :
-                            log.status.includes('未中') ? 'text-rose-400 bg-rose-950/40 border-rose-500/30' :
-                            'text-yellow-400 bg-yellow-950/40 border-yellow-500/30';
-                html += `
-                    <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl text-xs space-y-1">
-                        <div class="flex justify-between items-center font-bold">
-                            <span class="text-gray-200">${log.title}</span>
-                            <span class="px-2 py-0.5 rounded border text-[10px] ${color}">${log.status}</span>
-                        </div>
-                        <div class="flex justify-between text-gray-400 text-[11px]">
-                            <span>${log.text}</span>
-                            <span class="font-mono">${timeStr}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
 
         function openGuideModal() {
             document.getElementById('guideModal').classList.remove('hidden');
@@ -1960,6 +1968,18 @@
             document.getElementById('guideModal').classList.add('hidden');
         }
         window.closeGuideModal = closeGuideModal;
+
+        function openContactModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactModal').classList.add('flex');
+        }
+        window.openContactModal = openContactModal;
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.remove('flex');
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+        window.closeContactModal = closeContactModal;
     </script>
 </body>
 </html>
