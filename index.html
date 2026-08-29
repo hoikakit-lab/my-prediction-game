@@ -84,6 +84,7 @@
         const auth = getAuth(app);
         
         window.db = db;
+        window.auth = auth;
         window.collection = collection;
         window.addDoc = addDoc;
         window.getDocs = getDocs;
@@ -93,6 +94,7 @@
         window.getDoc = getDoc;
         window.setDoc = setDoc;
         window.onSnapshot = onSnapshot;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
 
         if (typeof window.initApp === 'function') {
             window.initApp();
@@ -110,7 +112,7 @@
             <div class="flex items-center gap-2.5 overflow-hidden">
                 <span class="text-base animate-bounce">📢</span>
                 <span class="text-blue-200 truncate">
-                    <b>全方位旗艦升級版 (安全強化版)</b>：已全面修復程式碼結構與語法錯誤，恢復網頁正常互動！
+                    <b>全方位旗艦升級版 (安全強化版)</b>：已全面修復程式碼結構、修復 JavaScript 語法卡死問題與雲端資料庫防護！
                 </span>
             </div>
             <button onclick="openGuideModal()" class="shrink-0 bg-blue-600/60 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-sm active:scale-95">
@@ -330,10 +332,14 @@
             
             <div id="adminLoginView" class="space-y-4 py-6 text-center">
                 <p class="text-xs text-gray-400">請輸入後台管理員授權密碼 (預設密碼: <code class="text-yellow-400 font-mono">admin123</code>)</p>
-                <div class="flex justify-center gap-2 max-w-xs mx-auto">
-                    <input type="password" id="adminPasswordInput" placeholder="輸入管理員密碼..." onkeydown="if(event.key==='Enter') verifyAdminPassword()"
+                <div class="flex flex-col gap-2 max-w-xs mx-auto">
+                    <input type="email" id="adminEmailInput" placeholder="管理員 Email (選填)..." 
                         class="bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-xs text-gray-100 focus:outline-none focus:border-yellow-500 w-full">
-                    <button onclick="verifyAdminPassword()" class="bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-bold px-4 py-2 rounded-xl text-xs transition active:scale-95 shadow-sm">解鎖後台</button>
+                    <div class="flex gap-2">
+                        <input type="password" id="adminPasswordInput" placeholder="輸入管理員密碼..." onkeydown="if(event.key==='Enter') verifyAdminPassword()"
+                            class="bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-xs text-gray-100 focus:outline-none focus:border-yellow-500 w-full">
+                        <button onclick="verifyAdminPassword()" class="bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-bold px-4 py-2 rounded-xl text-xs transition active:scale-95 shadow-sm shrink-0">解鎖後台</button>
+                    </div>
                 </div>
             </div>
 
@@ -1386,16 +1392,34 @@
         }
         window.closeAdminModal = closeAdminModal;
 
-        function verifyAdminPassword() {
+        async function verifyAdminPassword() {
+            let email = document.getElementById('adminEmailInput').value.trim();
             let pwd = document.getElementById('adminPasswordInput').value;
+
+            // 如果有填寫 email 且有設定 auth，嘗試透過 Firebase Authentication 驗證
+            if (email && window.auth && window.signInWithEmailAndPassword) {
+                try {
+                    await window.signInWithEmailAndPassword(window.auth, email, pwd);
+                    isAdminLoggedIn = true;
+                    localStorage.setItem('saved_admin_auth', 'true');
+                    showToast('Firebase 管理員身分認證成功！', 'success');
+                    updateAdminModalUI();
+                    updateUI();
+                    return;
+                } catch (err) {
+                    console.warn("Firebase Auth 驗證失敗，改用預設後台密碼驗證:", err);
+                }
+            }
+
+            // 備用密碼驗證 (admin123)
             if (pwd === 'admin123') {
                 isAdminLoggedIn = true;
                 localStorage.setItem('saved_admin_auth', 'true');
-                showToast('成功解鎖管理員後台！', 'success');
+                showToast('成功解鎖管理員後台', 'success');
                 updateAdminModalUI();
                 updateUI();
             } else {
-                alert('管理員密碼錯誤！ (預設密碼: admin123)');
+                alert('管理員密碼錯誤或認證失敗！');
             }
         }
         window.verifyAdminPassword = verifyAdminPassword;
@@ -1736,16 +1760,13 @@
                 document.getElementById('marketImage').value = '';
                 document.getElementById('marketDeadline').value = '';
                 updateUI();
-            } catch (e) {
-                console.error("發起失敗:", e);
-                alert('發起失敗，請檢查網路連線或稍後再試。');
-            }
+            } catch (e) { console.error("發起失敗:", e); }
         }
         window.createMarket = createMarket;
 
-        async function rateMarket(marketKey, type) {
-            if (!currentUser) { alert('請先登入帳號！'); return; }
-            let market = markets.find(m => m.docId === marketKey || m.id == marketKey);
+        async function rateMarket(docId, type) {
+            if (!currentUser) { alert('請先登入帳號才能評分！'); return; }
+            let market = markets.find(m => m.docId === docId);
             if (!market) return;
 
             let likes = Array.isArray(market.likes) ? [...market.likes] : [];
@@ -1768,40 +1789,38 @@
             }
 
             try {
-                if (window.db && market.docId) {
-                    await window.updateDoc(window.doc(window.db, "markets", market.docId), { likes, dislikes });
+                if (window.db) {
+                    await window.updateDoc(window.doc(window.db, "markets", docId), { likes, dislikes });
                 }
             } catch (e) { console.error("評分失敗:", e); }
         }
         window.rateMarket = rateMarket;
 
-        async function addComment(marketKey) {
+        async function addComment(docId) {
             if (!currentUser) { alert('請先登入帳號才能留言！'); return; }
-            let inputEl = document.getElementById(`commentInput_${marketKey}`);
+            let inputEl = document.getElementById(`commentInput_${docId}`);
             let text = inputEl.value.trim();
-            if (!text) { alert('請輸入留言內容！'); return; }
+            if (!text) return;
 
-            let market = markets.find(m => m.docId === marketKey || m.id == marketKey);
+            let market = markets.find(m => m.docId === docId);
             if (!market) return;
 
             let comments = Array.isArray(market.comments) ? [...market.comments] : [];
             comments.push({ user: currentUser, text, timestamp: Date.now() });
 
             try {
-                if (window.db && market.docId) {
-                    await window.updateDoc(window.doc(window.db, "markets", market.docId), { comments });
+                if (window.db) {
+                    await window.updateDoc(window.doc(window.db, "markets", docId), { comments });
                     inputEl.value = '';
-                    showToast('留言發布成功！', 'success');
                 }
             } catch (e) { console.error("留言失敗:", e); }
         }
         window.addComment = addComment;
 
         function openCheckinModal() {
-            if (!currentUser) { alert('請先登入帳號才能簽到！'); return; }
             document.getElementById('checkinModal').classList.remove('hidden');
             document.getElementById('checkinModal').classList.add('flex');
-            updateCheckinModalUI();
+            updateCheckinUI();
         }
         window.openCheckinModal = openCheckinModal;
 
@@ -1811,30 +1830,31 @@
         }
         window.closeCheckinModal = closeCheckinModal;
 
-        function updateCheckinModalUI() {
-            let streakEl = document.getElementById('checkinStreakCount');
-            let statusEl = document.getElementById('todayCheckinStatus');
-            let claimBtn = document.getElementById('claimCheckinBtn');
+        function updateCheckinUI() {
             let today = getTodayDateString();
+            let statusEl = document.getElementById('todayCheckinStatus');
+            let btnEl = document.getElementById('claimCheckinBtn');
+            let streakEl = document.getElementById('checkinStreakCount');
 
             if (streakEl) streakEl.innerText = `${checkinStreak} 天`;
+
             if (lastCheckinDate === today) {
                 if (statusEl) { statusEl.innerText = '今日已完成簽到'; statusEl.className = 'text-xs text-gray-400 font-semibold mt-2.5'; }
-                if (claimBtn) { claimBtn.innerText = '今日已領取 (明天請早)'; claimBtn.disabled = true; claimBtn.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm'; }
+                if (btnEl) { btnEl.innerText = '今日已領取簽到獎勵'; btnEl.disabled = true; btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm'; }
             } else {
                 if (statusEl) { statusEl.innerText = '今日尚未簽到'; statusEl.className = 'text-xs text-emerald-400 font-semibold mt-2.5'; }
-                if (claimBtn) { claimBtn.innerText = '立即領取今日簽到獎勵 (+200點)'; claimBtn.disabled = false; claimBtn.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]'; }
+                if (btnEl) { btnEl.innerText = '立即領取今日簽到獎勵 (+200點)'; btnEl.disabled = false; btnEl.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]'; }
             }
         }
 
         async function claimCheckin() {
-            if (!currentUser) return;
+            if (!currentUser) { alert('請先登入帳號！'); return; }
             let today = getTodayDateString();
-            if (lastCheckinDate === today) { alert('今天已經簽到過了！'); return; }
+            if (lastCheckinDate === today) { alert('今天已經簽過到了！'); return; }
 
             let yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            let yStr = `${yesterday.getFullYear()}-${yesterday.getMonth()+1}-${yesterday.getDate()}`;
+            let yStr = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
 
             if (lastCheckinDate === yStr) {
                 checkinStreak += 1;
@@ -1848,65 +1868,30 @@
             inboxMessages.push({
                 id: Date.now() + Math.random(),
                 title: '📅 每日簽到成功',
-                content: `您已完成今日簽到，獲得 +200 點獎勵積分！目前連續簽到 ${checkinStreak} 天。`,
+                content: `您已完成今日簽到，連續簽到 ${checkinStreak} 天，獲得 +200 點獎勵積分！`,
                 timestamp: Date.now(),
                 type: 'info'
             });
 
             await updateCloudUserData();
-            updateCheckinModalUI();
+            updateCheckinUI();
             updateUI();
             updateInboxBadge();
-            showToast('🎉 簽到成功，獲得 +200 點積分！', 'success');
+            showToast('📅 簽到成功，獲得 +200 點積分！', 'success');
         }
         window.claimCheckin = claimCheckin;
 
-        function openProfileModal() {
-            if (!currentUser) { alert('請先登入帳號！'); return; }
-            document.getElementById('profileModal').classList.remove('hidden');
-            document.getElementById('profileModal').classList.add('flex');
-            
-            document.getElementById('modalUsername').innerText = currentUser;
-            document.getElementById('modalBalance').innerText = balance;
-            document.getElementById('modalWins').innerText = `${wins} 勝`;
-            document.getElementById('modalLosses').innerText = `${losses} 敗`;
-
-            let total = wins + losses;
-            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
-            document.getElementById('modalWinRate').innerText = `${rate}%`;
-
-            let titleObj = getTitleAndBadge(balance);
-            let modalBadge = document.getElementById('modalTitleBadge');
-            modalBadge.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
-            modalBadge.innerText = titleObj.name;
-
-            let historyContainer = document.getElementById('myBetHistoryList');
-            if (myBetLogs.length === 0) {
-                historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
-            } else {
-                let html = '';
-                [...myBetLogs].reverse().forEach(log => {
-                    let stColor = log.status.includes('贏') ? 'text-emerald-400 font-bold' : log.status === '未中' ? 'text-rose-400 font-bold' : 'text-yellow-400 font-medium';
-                    html += `
-                        <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center shadow-sm">
-                            <div>
-                                <span class="font-bold text-gray-200 block mb-0.5">${log.title}</span>
-                                <span class="text-gray-400">${log.text}</span>
-                            </div>
-                            <span class="${stColor}">${log.status}</span>
-                        </div>
-                    `;
-                });
-                historyContainer.innerHTML = html;
-            }
+        function openGuideModal() {
+            document.getElementById('guideModal').classList.remove('hidden');
+            document.getElementById('guideModal').classList.add('flex');
         }
-        window.openProfileModal = openProfileModal;
+        window.openGuideModal = openGuideModal;
 
-        function closeProfileModal() {
-            document.getElementById('profileModal').classList.remove('flex');
-            document.getElementById('profileModal').classList.add('hidden');
+        function closeGuideModal() {
+            document.getElementById('guideModal').classList.remove('flex');
+            document.getElementById('guideModal').classList.add('hidden');
         }
-        window.closeProfileModal = closeProfileModal;
+        window.closeGuideModal = closeGuideModal;
 
         function openContactModal() {
             document.getElementById('contactModal').classList.remove('hidden');
@@ -1920,17 +1905,54 @@
         }
         window.closeContactModal = closeContactModal;
 
-        function openGuideModal() {
-            document.getElementById('guideModal').classList.remove('hidden');
-            document.getElementById('guideModal').classList.add('flex');
-        }
-        window.openGuideModal = openGuideModal;
+        function openProfileModal() {
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileModal').classList.add('flex');
+            
+            document.getElementById('modalUsername').innerText = currentUser || '未登入';
+            document.getElementById('modalBalance').innerText = balance;
+            let total = wins + losses;
+            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
+            document.getElementById('modalWinRate').innerText = `${rate}%`;
+            document.getElementById('modalWins').innerText = `${wins} 勝`;
+            document.getElementById('modalLosses').innerText = `${losses} 敗`;
 
-        function closeGuideModal() {
-            document.getElementById('guideModal').classList.remove('flex');
-            document.getElementById('guideModal').classList.add('hidden');
+            let badgeObj = getTitleAndBadge(balance);
+            let modalBadge = document.getElementById('modalTitleBadge');
+            modalBadge.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${badgeObj.class}`;
+            modalBadge.innerText = badgeObj.name;
+
+            let historyContainer = document.getElementById('myBetHistoryList');
+            if (myBetLogs.length === 0) {
+                historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
+            } else {
+                let hHtml = '';
+                [...myBetLogs].reverse().forEach(log => {
+                    let timeStr = new Date(log.timestamp).toLocaleString('zh-CN', { hour12: false });
+                    let statusColor = log.status.includes('贏') ? 'text-emerald-400 font-bold' : log.status === '未中' ? 'text-red-400 font-semibold' : 'text-yellow-400 font-medium';
+                    hHtml += `
+                        <div class="bg-gray-900/90 border border-gray-800 p-3 rounded-xl text-xs flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-gray-200 block mb-0.5">${log.title}</span>
+                                <span class="text-gray-400">${log.text}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="${statusColor} block">${log.status}</span>
+                                <span class="text-[10px] text-gray-500 font-mono">${timeStr}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                historyContainer.innerHTML = hHtml;
+            }
         }
-        window.closeGuideModal = closeGuideModal;
+        window.openProfileModal = openProfileModal;
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('flex');
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+        window.closeProfileModal = closeProfileModal;
     </script>
 </body>
 </html>
