@@ -66,6 +66,7 @@
     </style>
     <!-- 載入 Firebase 雲端大腦與資料庫工具 -->
     <script type="module">
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -80,6 +81,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
         
         window.db = db;
         window.collection = collection;
@@ -1384,16 +1386,17 @@
         }
         window.closeAdminModal = closeAdminModal;
 
-        function verifyAdminPassword() {
-            let pwd = document.getElementById('adminPasswordInput').value;
-            if (pwd === 'admin123') {
-                isAdminLoggedIn = true;
-                localStorage.setItem('saved_admin_auth', 'true');
-                showToast('🔐 管理員後台解鎖成功！', 'success');
-                updateAdminModalUI();
-                updateUI();
-            } else { alert('管理員密碼錯誤！'); }
-        }
+      <div id="adminLoginModal">
+    <h3>管理員登入</h3>
+    <!-- 新增：輸入管理員 Email 的欄位 -->
+    <input type="email" id="adminEmailInput" placeholder="請輸入管理員 Email">
+    
+    <!-- 原本的密碼欄位（改個 id 方便抓取） -->
+    <input type="password" id="adminPasswordInput" placeholder="請輸入密碼">
+    
+    <!-- 按下登入按鈕 -->
+    <button onclick="verifyAdminPassword()">登入後台</button>
+</div>
         window.verifyAdminPassword = verifyAdminPassword;
 
         function logoutAdmin() {
