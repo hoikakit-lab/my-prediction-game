@@ -1386,17 +1386,18 @@
         }
         window.closeAdminModal = closeAdminModal;
 
-      <div id="adminLoginModal">
-    <h3>管理員登入</h3>
-    <!-- 新增：輸入管理員 Email 的欄位 -->
-    <input type="email" id="adminEmailInput" placeholder="請輸入管理員 Email">
-    
-    <!-- 原本的密碼欄位（改個 id 方便抓取） -->
-    <input type="password" id="adminPasswordInput" placeholder="請輸入密碼">
-    
-    <!-- 按下登入按鈕 -->
-    <button onclick="verifyAdminPassword()">登入後台</button>
-</div>
+        function verifyAdminPassword() {
+            let pass = document.getElementById('adminPasswordInput').value;
+            if (pass === 'admin123') {
+                isAdminLoggedIn = true;
+                localStorage.setItem('saved_admin_auth', 'true');
+                showToast('成功解鎖管理員後台！', 'success');
+                updateAdminModalUI();
+                updateUI();
+            } else {
+                alert('管理員密碼錯誤！');
+            }
+        }
         window.verifyAdminPassword = verifyAdminPassword;
 
         function logoutAdmin() {
@@ -1533,7 +1534,6 @@
             let totalPool = market.pools.reduce((a, b) => a + b, 0);
             let platformFee = Math.round(totalPool * 0.03);
             let creatorReward = Math.round(platformFee * 0.3);
-            let remainingPool = totalPool - platformFee;
 
             if (market.creator) {
                 try {
@@ -1545,242 +1545,292 @@
                 } catch(e) { console.error("發放獎勵失敗:", e); }
             }
 
-            let winningPool = market.pools[winningIdx];
-            let userBetObj = userBets[market.id] || {};
-            let userWinningBet = userBetObj[winningIdx] || 0;
-            let userHasParticipated = Object.keys(userBetObj).length > 0;
-
-            if (userHasParticipated) {
-                let logIdx = myBetLogs.findIndex(l => l.title === market.title && l.status === '進行中');
-                let payout = 0;
-                if (userWinningBet > 0 && winningPool > 0) {
-                    payout = Math.round((userWinningBet / winningPool) * remainingPool);
-                    balance += payout;
-                    wins += 1;
-                    if (logIdx !== -1) myBetLogs[logIdx].status = `贏得 +${payout}點`;
-                    inboxMessages.push({
-                        id: Date.now() + Math.random(),
-                        title: '🏁 預測結算與派彩通知',
-                        content: `您參與的預測「${market.title}」已結算！勝出選項為「${market.options[winningIdx]}」，贏得 +${payout} 點積分！`,
-                        timestamp: Date.now(),
-                        type: 'win'
-                    });
-                } else {
-                    losses += 1;
-                    if (logIdx !== -1) myBetLogs[logIdx].status = `未中`;
-                    inboxMessages.push({
-                        id: Date.now() + Math.random(),
-                        title: '🏁 預測結算通知',
-                        content: `您參與的預測「${market.title}」已結算。勝出選項為「${market.options[winningIdx]}」，很可惜本次未中獎。`,
-                        timestamp: Date.now(),
-                        type: 'lose'
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", docId), {
+                        status: 'closed',
+                        resultIndex: winningIdx,
+                        closedAt: Date.now()
                     });
                 }
-                await updateCloudUserData();
-            }
-
-            try {
-                await window.updateDoc(window.doc(window.db, "markets", market.docId), {
-                    status: 'closed',
-                    resultIndex: winningIdx,
-                    closedAt: Date.now()
-                });
-                showToast(`🏁 管理員結算完成！勝出選項：${market.options[winningIdx]}`, 'success');
-                closeAdminModal();
-                updateUI();
-                updateInboxBadge();
+                showToast('已成功結算此預測局！', 'success');
+                renderAdminDashboardContent();
             } catch (e) { console.error("結算失敗:", e); }
         }
         window.adminResolveMarket = adminResolveMarket;
 
+        // 輪盤與其他輔助函數補齊
         function initWheelCanvas() {
             let canvas = document.getElementById('wheelCanvas');
             if (!canvas) return;
-            drawWheel(wheelAngle);
-        }
-
-        function drawWheel(angle) {
-            let canvas = document.getElementById('wheelCanvas');
-            if (!canvas) return;
             let ctx = canvas.getContext('2d');
-            let numSectors = wheelSectors.length;
-            let arc = (2 * Math.PI) / numSectors;
-            let radius = canvas.width / 2;
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 2;
+            let r = canvas.width / 2 - 10;
+            let arc = Math.PI * 2 / wheelSectors.length;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (let i = 0; i < numSectors; i++) {
-                let sectorAngle = angle + i * arc;
+            wheelSectors.forEach((sec, i) => {
+                let angle = i * arc + wheelAngle;
                 ctx.beginPath();
-                ctx.fillStyle = wheelSectors[i].color;
-                ctx.moveTo(radius, radius);
-                ctx.arc(radius, radius, radius - 4, sectorAngle, sectorAngle + arc);
-                ctx.lineTo(radius, radius);
+                ctx.fillStyle = sec.color;
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, r, angle, angle + arc);
+                ctx.lineTo(cx, cy);
                 ctx.fill();
-
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
                 ctx.save();
-                ctx.translate(radius, radius);
-                ctx.rotate(sectorAngle + arc / 2);
+
+                ctx.translate(cx, cy);
+                ctx.rotate(angle + arc / 2);
                 ctx.textAlign = 'right';
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px Inter, sans-serif';
-                ctx.fillText(wheelSectors[i].label, radius - 15, 6);
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText(sec.label, r - 15, 5);
                 ctx.restore();
-            }
+            });
         }
 
         function updateWheelUI() {
-            let badge = document.getElementById('wheelStatusBadge');
-            let btn = document.getElementById('spinBtn');
             let today = getTodayDateString();
+            let btn = document.getElementById('spinBtn');
+            let badge = document.getElementById('wheelStatusBadge');
+            if (!btn || !badge) return;
+            if (!currentUser) {
+                badge.innerText = '請先登入';
+                btn.disabled = true;
+                return;
+            }
             if (lastWheelDate === today) {
-                if (badge) { badge.innerText = '今日已轉過'; badge.className = 'text-[10px] bg-gray-800 text-gray-400 px-2.5 py-0.5 rounded-full border border-gray-700 font-semibold'; }
-                if (btn) { btn.innerText = '今日次數已用完 (明天請早)'; btn.disabled = true; btn.className = 'w-full mt-2 bg-gray-800 text-gray-500 font-bold py-2.5 rounded-xl cursor-not-allowed text-xs'; }
+                badge.innerText = '今日已轉過';
+                btn.innerText = '🎯 今日額度已用完';
+                btn.disabled = true;
+                btn.className = 'w-full mt-2 bg-gray-800 text-gray-500 font-bold py-2.5 rounded-xl transition text-xs cursor-not-allowed';
             } else {
-                if (badge) { badge.innerText = '每日1次'; badge.className = 'text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-semibold'; }
-                if (btn) { btn.innerText = '🎯 立即轉動 (免費)'; btn.disabled = false; btn.className = 'w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95'; }
+                badge.innerText = '每日1次';
+                btn.innerText = '🎯 立即轉動 (免費)';
+                btn.disabled = false;
+                btn.className = 'w-full mt-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-gray-950 font-extrabold py-2.5 rounded-xl transition shadow-lg text-xs active:scale-95';
             }
         }
 
         function spinWheel() {
-            if (!currentUser) { alert('請先登入帳號才能轉動大輪盤！'); return; }
+            if (!currentUser) { alert('請先登入帳號才能轉輪盤！'); return; }
             let today = getTodayDateString();
-            if (lastWheelDate === today) { alert('今天已經轉過大輪盤了，明天再來吧！'); return; }
+            if (lastWheelDate === today) { alert('今天已經轉過輪盤囉！'); return; }
             if (isSpinning) return;
 
             isSpinning = true;
-            lastWheelDate = today;
-            updateWheelUI();
-
-            let randomSectorIndex = Math.floor(Math.random() * wheelSectors.length);
-            let winningSector = wheelSectors[randomSectorIndex];
-            let arc = (2 * Math.PI) / wheelSectors.length;
-            let targetAngle = 5 * 2 * Math.PI + (wheelSectors.length - randomSectorIndex) * arc - arc / 2;
-
-            let startTime = null;
+            let spinAngle = Math.random() * Math.PI * 2 + Math.PI * 10;
             let duration = 3000;
+            let start = null;
+            let startAngle = wheelAngle;
 
-            function animateSpin(currentTime) {
-                if (!startTime) startTime = currentTime;
-                let elapsed = currentTime - startTime;
-                let progress = Math.min(elapsed / duration, 1);
-                let easeOut = 1 - Math.pow(1 - progress, 3);
-                let currentAngle = wheelAngle + (targetAngle - wheelAngle) * easeOut;
-
-                drawWheel(currentAngle);
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateSpin);
+            function animate(timestamp) {
+                if (!start) start = timestamp;
+                let progress = timestamp - start;
+                let easeOut = 1 - Math.pow(1 - Math.min(progress / duration, 1), 3);
+                wheelAngle = startAngle + spinAngle * easeOut;
+                initWheelCanvas();
+                if (progress < duration) {
+                    requestAnimationFrame(animate);
                 } else {
                     isSpinning = false;
-                    wheelAngle = targetAngle % (2 * Math.PI);
-                    balance += winningSector.value;
+                    lastWheelDate = today;
+                    let selectedIdx = Math.floor((Math.PI * 2 - (wheelAngle % (Math.PI * 2))) / (Math.PI * 2 / wheelSectors.length)) % wheelSectors.length;
+                    let reward = wheelSectors[selectedIdx].value;
+                    balance += reward;
                     updateCloudUserData();
-                    showToast(`🎉 恭喜在幸運輪盤抽中 ${winningSector.label}！`, 'success');
-                    updateUI();
+                    updateWheelUI();
+                    showToast(`🎉 恭喜透過幸運大輪盤贏得 ${reward} 點！`, 'success');
                 }
             }
-            requestAnimationFrame(animateSpin);
+            requestAnimationFrame(animate);
         }
         window.spinWheel = spinWheel;
+
+        function openCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('hidden');
+            document.getElementById('checkinModal').classList.add('flex');
+            let today = getTodayDateString();
+            let statusEl = document.getElementById('todayCheckinStatus');
+            let btnEl = document.getElementById('claimCheckinBtn');
+            document.getElementById('checkinStreakCount').innerText = `${checkinStreak || 1} 天`;
+
+            if (lastCheckinDate === today) {
+                statusEl.innerText = '✅ 今日已完成簽到';
+                btnEl.disabled = true;
+                btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl transition text-sm cursor-not-allowed';
+            } else {
+                statusEl.innerText = '⭐ 今日尚未簽到';
+                btnEl.disabled = false;
+                btnEl.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]';
+            }
+        }
+        window.openCheckinModal = openCheckinModal;
+
+        function closeCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('flex');
+            document.getElementById('checkinModal').classList.add('hidden');
+        }
+        window.closeCheckinModal = closeCheckinModal;
+
+        async function claimCheckin() {
+            if (!currentUser) { alert('請先登入帳號！'); return; }
+            let today = getTodayDateString();
+            if (lastCheckinDate === today) { alert('今天已經簽到過了！'); return; }
+
+            lastCheckinDate = today;
+            checkinStreak = (checkinStreak || 0) + 1;
+            balance += 200;
+            await updateCloudUserData();
+            closeCheckinModal();
+            showToast('📅 簽到成功！獲得 200 點獎勵！', 'success');
+            updateUI();
+        }
+        window.claimCheckin = claimCheckin;
+
+        function openGuideModal() {
+            document.getElementById('guideModal').classList.remove('hidden');
+            document.getElementById('guideModal').classList.add('flex');
+        }
+        window.openGuideModal = openGuideModal;
+
+        function closeGuideModal() {
+            document.getElementById('guideModal').classList.remove('flex');
+            document.getElementById('guideModal').classList.add('hidden');
+        }
+        window.closeGuideModal = closeGuideModal;
+
+        function openContactModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactModal').classList.add('flex');
+        }
+        window.openContactModal = openContactModal;
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.remove('flex');
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+        window.closeContactModal = closeContactModal;
+
+        function openProfileModal() {
+            if (!currentUser) { alert('請先登入帳號！'); return; }
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileModal').classList.add('flex');
+            document.getElementById('modalUsername').innerText = currentUser;
+            document.getElementById('modalBalance').innerText = balance;
+            document.getElementById('modalWins').innerText = `${wins} 勝`;
+            document.getElementById('modalLosses').innerText = `${losses} 敗`;
+            let total = wins + losses;
+            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
+            document.getElementById('modalWinRate').innerText = `${rate}%`;
+            let titleObj = getTitleAndBadge(balance);
+            let badgeEl = document.getElementById('modalTitleBadge');
+            badgeEl.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
+            badgeEl.innerText = titleObj.name;
+
+            let historyContainer = document.getElementById('myBetHistoryList');
+            if (myBetLogs.length === 0) {
+                historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
+            } else {
+                let html = '';
+                [...myBetLogs].reverse().forEach(log => {
+                    html += `
+                        <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl text-xs space-y-1">
+                            <div class="font-bold text-yellow-400">${log.title}</div>
+                            <div class="text-gray-300">${log.text}</div>
+                        </div>
+                    `;
+                });
+                historyContainer.innerHTML = html;
+            }
+        }
+        window.openProfileModal = openProfileModal;
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('flex');
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+        window.closeProfileModal = closeProfileModal;
 
         async function createMarket() {
             if (!currentUser) { alert('請先登入帳號才能發起策展局！'); return; }
             let remaining = checkDailyQuota();
-            if (remaining <= 0) { alert('今日策展次數已用完！'); return; }
-            if (balance < 100) { alert('帳戶積分不足 100 點押金！'); return; }
+            if (remaining <= 0) { alert('今日策展發布額度已用完！'); return; }
+            if (balance < 100) { alert('您的積分不足 100 點押金！'); return; }
 
             let category = document.getElementById('marketCategory').value;
-            let deadline = document.getElementById('marketDeadline').value;
+            let deadline = document.getElementById('marketDeadline').value.trim();
             let title = document.getElementById('newMarketTitle').value.trim();
             let sourceUrl = document.getElementById('marketSourceUrl').value.trim();
-            let optionsRaw = document.getElementById('marketOptions').value.trim();
+            let optionsStr = document.getElementById('marketOptions').value.trim();
             let imageUrl = document.getElementById('marketImage').value.trim();
 
-            if (!title) { alert('請輸入預測題目！'); return; }
-            if (!sourceUrl) { alert('請務必填寫公開證據來源網址以確保查證品質！'); return; }
-            if (!validateDeadlineField(deadline)) { alert('結算截止時間格式錯誤或小於當前北京時間！'); return; }
+            if (!title) { alert('請填寫預測題目！'); return; }
+            if (!validateDeadlineField(deadline)) { alert('請填寫正確且大於當前北京時間的結算截止時間！'); return; }
+            if (!sourceUrl) { alert('請填寫嚴謹的證據來源網址！'); return; }
+            if (!optionsStr) { alert('請設定預測選項！'); return; }
 
-            let options = optionsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            if (options.length < 2) { alert('選項至少需要 2 個以上，並用逗號隔開！'); return; }
+            let options = optionsStr.split(',').map(o => o.trim()).filter(o => o.length > 0);
+            if (options.length < 2) { alert('選項至少需要 2 個以上（用逗號隔開）！'); return; }
 
             balance -= 100;
-            dailyPostCount += 1;
+            dailyPostCount++;
 
-            let newMarket = {
-                title, category, deadline, sourceUrl, imageUrl, options,
+            let newMarketData = {
+                category,
+                deadline,
+                title,
+                sourceUrl,
+                options,
                 pools: new Array(options.length).fill(0),
+                imageUrl: imageUrl || "",
                 creator: currentUser,
                 status: 'open',
                 isPublished: false,
-                resultIndex: null,
-                comments: [],
                 likes: [],
                 dislikes: [],
+                comments: [],
                 createdAt: Date.now()
             };
 
             try {
                 if (window.db) {
                     await updateCloudUserData();
-                    await window.addDoc(window.collection(window.db, "markets"), newMarket);
+                    await window.addDoc(window.collection(window.db, "markets"), newMarketData);
                 }
-                showToast('✨ 策展局已成功發起，已扣除 100 點押金，正等待管理員審核預熱！', 'success');
+                showToast('🎉 成功發起策展局，已扣除 100 點押金，進入審核預熱池！', 'success');
                 document.getElementById('newMarketTitle').value = '';
                 document.getElementById('marketSourceUrl').value = '';
                 document.getElementById('marketImage').value = '';
-                document.getElementById('marketDeadline').value = '';
                 updateUI();
             } catch (e) {
-                console.error("發起失敗:", e);
+                console.error("發起市集失敗:", e);
                 alert('發起失敗，請檢查網路連線。');
             }
         }
         window.createMarket = createMarket;
 
-        async function addComment(marketKey) {
-            if (!currentUser) { alert('請先登入帳號才能留言！'); return; }
-            let inputEl = document.getElementById(`commentInput_${marketKey}`);
-            let text = inputEl.value.trim();
-            if (!text) return;
-
-            let market = markets.find(m => m.docId === marketKey || m.id == marketKey);
-            if (!market) return;
-
-            market.comments.push({ user: currentUser, text, timestamp: Date.now() });
-            inputEl.value = '';
-
-            try {
-                if (window.db && market.docId) {
-                    await window.updateDoc(window.doc(window.db, "markets", market.docId), { comments: market.comments });
-                }
-                updateUI();
-                showToast('留言發表成功', 'success');
-            } catch (e) { console.error("留言失敗:", e); }
-        }
-        window.addComment = addComment;
-
-        async function rateMarket(marketKey, type) {
+        async function rateMarket(docId, type) {
             if (!currentUser) { alert('請先登入帳號！'); return; }
-            let market = markets.find(m => m.docId === marketKey || m.id == marketKey);
+            let market = markets.find(m => m.docId === docId || m.id === docId);
             if (!market) return;
 
             if (!Array.isArray(market.likes)) market.likes = [];
             if (!Array.isArray(market.dislikes)) market.dislikes = [];
 
+            let hasLiked = market.likes.includes(currentUser);
+            let hasDisliked = market.dislikes.includes(currentUser);
+
             if (type === 'like') {
-                if (market.likes.includes(currentUser)) {
+                if (hasLiked) {
                     market.likes = market.likes.filter(u => u !== currentUser);
                 } else {
                     market.likes.push(currentUser);
                     market.dislikes = market.dislikes.filter(u => u !== currentUser);
                 }
             } else {
-                if (market.dislikes.includes(currentUser)) {
+                if (hasDisliked) {
                     market.dislikes = market.dislikes.filter(u => u !== currentUser);
                 } else {
                     market.dislikes.push(currentUser);
@@ -1800,127 +1850,30 @@
         }
         window.rateMarket = rateMarket;
 
-        async function claimCheckin() {
-            if (!currentUser) { alert('請先登入帳號！'); return; }
-            let today = getTodayDateString();
-            if (lastCheckinDate === today) { alert('今天已經簽到過了，明天再來吧！'); return; }
+        async function addComment(docId) {
+            if (!currentUser) { alert('請先登入帳號才能留言！'); return; }
+            let inputEl = document.getElementById(`commentInput_${docId}`);
+            let text = inputEl.value.trim();
+            if (!text) { alert('請輸入留言內容！'); return; }
 
-            let yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            let yStr = `${yesterday.getFullYear()}-${yesterday.getMonth()+1}-${yesterday.getDate()}`;
+            let market = markets.find(m => m.docId === docId || m.id === docId);
+            if (!market) return;
 
-            if (lastCheckinDate === yStr) checkinStreak += 1;
-            else checkinStreak = 1;
+            if (!Array.isArray(market.comments)) market.comments = [];
+            market.comments.push({ user: currentUser, text, timestamp: Date.now() });
 
-            lastCheckinDate = today;
-            let reward = 200;
-            balance += reward;
-
-            await updateCloudUserData();
-            closeCheckinModal();
-            updateWheelUI();
-            showToast(`📅 簽到成功！獲得 +${reward} 點積分！`, 'success');
-            updateUI();
+            try {
+                if (window.db && market.docId) {
+                    await window.updateDoc(window.doc(window.db, "markets", market.docId), {
+                        comments: market.comments
+                    });
+                }
+                inputEl.value = '';
+                showToast('留言發表成功！', 'success');
+                updateUI();
+            } catch (e) { console.error("留言失敗:", e); }
         }
-        window.claimCheckin = claimCheckin;
-
-        function openCheckinModal() {
-            document.getElementById('checkinModal').classList.remove('hidden');
-            document.getElementById('checkinModal').classList.add('flex');
-            let today = getTodayDateString();
-            document.getElementById('checkinStreakCount').innerText = `${checkinStreak || 1} 天`;
-            let statusEl = document.getElementById('todayCheckinStatus');
-            let btnEl = document.getElementById('claimCheckinBtn');
-            if (lastCheckinDate === today) {
-                statusEl.innerText = "今日已完成簽到 ✅";
-                btnEl.disabled = true;
-                btnEl.className = 'w-full bg-gray-800 text-gray-500 font-bold py-3.5 rounded-xl cursor-not-allowed text-sm';
-            } else {
-                statusEl.innerText = "今日尚未簽到";
-                btnEl.disabled = false;
-                btnEl.className = 'w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 active:scale-[0.99]';
-            }
-        }
-        window.openCheckinModal = openCheckinModal;
-
-        function closeCheckinModal() {
-            document.getElementById('checkinModal').classList.remove('flex');
-            document.getElementById('checkinModal').classList.add('hidden');
-        }
-        window.closeCheckinModal = closeCheckinModal;
-
-        function openContactModal() {
-            document.getElementById('contactModal').classList.remove('hidden');
-            document.getElementById('contactModal').classList.add('flex');
-        }
-        window.openContactModal = openContactModal;
-
-        function closeContactModal() {
-            document.getElementById('contactModal').classList.remove('flex');
-            document.getElementById('contactModal').classList.add('hidden');
-        }
-        window.closeContactModal = closeContactModal;
-
-        function openGuideModal() {
-            document.getElementById('guideModal').classList.remove('hidden');
-            document.getElementById('guideModal').classList.add('flex');
-        }
-        window.openGuideModal = openGuideModal;
-
-        function closeGuideModal() {
-            document.getElementById('guideModal').classList.remove('flex');
-            document.getElementById('guideModal').classList.add('hidden');
-        }
-        window.closeGuideModal = closeGuideModal;
-
-        function openProfileModal() {
-            if (!currentUser) { alert('請先登入帳號！'); return; }
-            document.getElementById('profileModal').classList.remove('hidden');
-            document.getElementById('profileModal').classList.add('flex');
-            document.getElementById('modalUsername').innerText = currentUser;
-            document.getElementById('modalBalance').innerText = balance;
-            document.getElementById('modalWins').innerText = `${wins} 勝`;
-            document.getElementById('modalLosses').innerText = `${losses} 敗`;
-            let total = wins + losses;
-            let rate = total === 0 ? 0 : Math.round((wins / total) * 100);
-            document.getElementById('modalWinRate').innerText = `${rate}%`;
-
-            let titleObj = getTitleAndBadge(balance);
-            let badgeEl = document.getElementById('modalTitleBadge');
-            badgeEl.className = `text-[10px] px-3 py-1 rounded-full border font-bold tracking-wider ${titleObj.class}`;
-            badgeEl.innerText = titleObj.name;
-
-            let historyContainer = document.getElementById('myBetHistoryList');
-            if (myBetLogs.length === 0) {
-                historyContainer.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-4">尚無下注紀錄，趕快去大廳參與預測吧！</p>`;
-            } else {
-                let html = '';
-                [...myBetLogs].reverse().forEach(log => {
-                    let statusColor = log.status === '進行中' ? 'text-amber-400' : log.status.includes('贏得') ? 'text-emerald-400 font-bold' : 'text-rose-400';
-                    let timeStr = new Date(log.timestamp).toLocaleString('zh-CN', { hour12: false });
-                    html += `
-                        <div class="bg-gray-900 border border-gray-800 p-3 rounded-xl flex justify-between items-center text-xs">
-                            <div>
-                                <span class="font-bold text-gray-100 block mb-0.5">${log.title}</span>
-                                <span class="text-gray-400 text-[11px]">${log.text}</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="${statusColor} block mb-0.5">${log.status}</span>
-                                <span class="text-[10px] text-gray-500 font-mono">${timeStr}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                historyContainer.innerHTML = html;
-            }
-        }
-        window.openProfileModal = openProfileModal;
-
-        function closeProfileModal() {
-            document.getElementById('profileModal').classList.remove('flex');
-            document.getElementById('profileModal').classList.add('hidden');
-        }
-        window.closeProfileModal = closeProfileModal;
+        window.addComment = addComment;
     </script>
 </body>
 </html>
